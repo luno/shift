@@ -1,10 +1,39 @@
 // Package shift provides the persistence layer for a simple "finite state machine"
 // domain model with validation, explicit fields and reflex events per state change.
 //
+// Defining an FSM
+//
 // shift.NewFSM builds a FSM instance that allows specific mutations of
 // the domain model in the underlying sql table via inserts and updates.
 // All mutations update the status of the model, mutates some fields and
 // inserts a reflex event.
+//
+// There needs to be at least one insert status defined and 0..n update
+// statuses defined. When defining statuses, it is useful to think of the
+// following model:
+//
+//        TargetState, UpdaterForTargetState, TransitionableStatesAfterThisState
+//
+// This is an example that follows this model:
+//
+//        Insert(InsertStatus, insertReq{}, PendingStatus).
+//        Update(PendingStatus, pendingReq{}, errorStatus, authorizedStatus).
+//        Update(AuthorizedStatus, authorizedReq{}, errorStatus).
+//        Update(ErrorState,  errorReq{}, PendingStatus).
+//        Build()
+//
+// It is best to avoid the following interpretation when defining a FSM:
+//
+//        FromState, UpdaterForTargetState, TargetStates
+//
+// This is an example that follows this thought pattern (it is INCORRECT!):
+//
+//        Insert(InsertStatus, insertReq{}, PendingStatus).
+//        Update(PendingStatus, updateReq{}, errorStatus, authorizedStatus).
+//        Update(AuthorizedStatus, errorReq{}, errorStatus).
+//        Update(ErrorState,  pendingReq{}, PendingStatus).
+//        Build()
+//
 package shift
 
 import (

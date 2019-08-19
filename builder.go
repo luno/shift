@@ -20,30 +20,30 @@ type builder FSM
 type initer builder
 
 // Insert returns a FSM builder with the provided insert status.
-func (c initer) Insert(st Status, inserter Inserter, next ...Status) builder {
+func (c initer) Insert(st Status, stInserter Inserter, nextAllowed ...Status) builder {
 	c.states[st] = status{
 		st:     st,
-		req:    inserter,
+		req:    stInserter,
 		t:      st,
 		insert: false,
-		next:   toMap(next),
+		next:   toMap(nextAllowed),
 	}
 	c.insertStatus = st
 	return builder(c)
 }
 
 // Update returns a FSM builder with the provided status update added.
-func (b builder) Update(st Status, updater Updater, next ...Status) builder {
+func (b builder) Update(st Status, stUpdater Updater, nextAllowed ...Status) builder {
 	if _, has := b.states[st]; has {
 		// Ok to panic since it is build time.
 		panic("state already added")
 	}
 	b.states[st] = status{
 		st:     st,
-		req:    updater,
+		req:    stUpdater,
 		t:      st,
 		insert: false,
-		next:   toMap(next),
+		next:   toMap(nextAllowed),
 	}
 	return b
 }
