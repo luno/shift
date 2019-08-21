@@ -40,6 +40,8 @@ var (
 		"The sql column in the table containing the status")
 	outFile = flag.String("out", "shift_gen.go",
 		"output filename")
+	quoteChar = flag.String("quote_char", "`",
+		"Character to use when quoting column names")
 )
 
 type Field struct {
@@ -177,12 +179,20 @@ func main() {
 }
 
 func execTpl(out io.Writer, tpl string, data interface{}) error {
-	t, err := template.New("").Parse(tpl)
+	t := template.New("").Funcs(map[string]interface{}{
+		"col": quoteCol,
+	})
+
+	tp, err := t.Parse(tpl)
 	if err != nil {
 		return err
 	}
 
 	return t.Execute(out, data)
+}
+
+func quoteCol(colName string) string {
+	return *quoteChar + colName + *quoteChar
 }
 
 func writeOutput(data Data, pwd string) error {
