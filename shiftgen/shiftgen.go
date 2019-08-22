@@ -188,7 +188,7 @@ func execTpl(out io.Writer, tpl string, data interface{}) error {
 		return err
 	}
 
-	return t.Execute(out, data)
+	return tp.Execute(out, data)
 }
 
 func quoteCol(colName string) string {
