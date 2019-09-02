@@ -1,4 +1,6 @@
 # Shift
+[![Go Report Card](https://goreportcard.com/badge/github.com/golang-standards/project-layout?style=flat-square)](https://goreportcard.com/report/github.com/luno/shift)
+[![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](http://godoc.org/github.com/luno/shift)
 
 Shift provides the SQL persistence layer for a simple "finite state machine" domain model. It provides validation, explicit fields and reflex events per state change. It is therefore used to explicitly define the life cycle of the domain model, i.e., the states it can transition through and the data modifications required for each transition.
 
