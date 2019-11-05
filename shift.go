@@ -12,6 +12,7 @@ import (
 	"database/sql"
 	"reflect"
 
+	"github.com/luno/jettison/errors"
 	"github.com/luno/reflex"
 	"github.com/luno/reflex/rsql"
 )
@@ -24,8 +25,9 @@ import (
 //	func (s MyStatus) Enum() int {
 //		return int(s)
 //	}
-//  // ReflexType is an optional method to override the default reflex type.
-//  func (s MyStatus) ReflexType() reflex.EventType {}
+//	func (s MyStatus) ReflexType() int {
+//		return int(s)
+//	}
 //	const (
 //		StatusUnknown MyStatus = 0
 //		StatusInsert  MyStatus = 1
@@ -36,17 +38,39 @@ type Status interface {
 	ReflexType() int
 }
 
+// Inserter provides an interface for inserting new state machine instance rows.
 type Inserter interface {
-	Insert(context.Context, *sql.Tx, Status) (int64, error)
+	// Insert inserts a new row with status and returns an id or an error.
+	Insert(ctx context.Context, tx *sql.Tx, status Status) (int64, error)
 }
+
+// Updater provides an interface for updating existing state machine instance rows.
 type Updater interface {
-	Update(context.Context, *sql.Tx, Status, Status) (int64, error)
+	// Update updates the status of an existing row returns an id or an error.
+	Update(ctx context.Context, tx *sql.Tx, from Status, to Status) (int64, error)
+}
+
+// MetadataInserter extends Inserter with additional metadata inserted with the reflex event.
+type MetadataInserter interface {
+	Inserter
+
+	// GetMetadata returns the metadata to be inserted with the reflex event for the insert.
+	GetMetadata(ctx context.Context, tx *sql.Tx, id int64, status Status) ([]byte, error)
+}
+
+// MetadataUpdater extends Updater with additional metadata inserted with the reflex event.
+type MetadataUpdater interface {
+	Updater
+
+	// GetMetadata returns the metadata to be inserted with the reflex event for the update.
+	GetMetadata(ctx context.Context, tx *sql.Tx, from Status, to Status) ([]byte, error)
 }
 
 type FSM struct {
 	events       rsql.EventsTableInt
 	states       map[Status]status
 	insertStatus Status
+	withMetadata bool
 }
 
 // Insert returns the id of the newly inserted domain model.
@@ -69,7 +93,21 @@ func (fsm *FSM) Insert(ctx context.Context, dbc *sql.DB, inserter Inserter) (int
 		return 0, err
 	}
 
-	notify, err := fsm.events.Insert(ctx, tx, id, fsm.states[st].t)
+	var metadata []byte
+	if fsm.withMetadata {
+		meta, ok := inserter.(MetadataInserter)
+		if !ok {
+			return 0, errors.New("inserter without metadata")
+		}
+
+		var err error
+		metadata, err = meta.GetMetadata(ctx, tx, id, st)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	notify, err := fsm.events.InsertWithMetadata(ctx, tx, id, fsm.states[st].t, metadata)
 	if err != nil {
 		return 0, err
 	}
@@ -114,7 +152,21 @@ func (fsm *FSM) UpdateTx(ctx context.Context, tx *sql.Tx, from Status, to Status
 		return nil, err
 	}
 
-	return fsm.events.Insert(ctx, tx, id, fsm.states[to].t)
+	var metadata []byte
+	if fsm.withMetadata {
+		meta, ok := updater.(MetadataUpdater)
+		if !ok {
+			return nil, errors.New("updater without metadata")
+		}
+
+		var err error
+		metadata, err = meta.GetMetadata(ctx, tx, from, to)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return fsm.events.InsertWithMetadata(ctx, tx, id, fsm.states[to].t, metadata)
 }
 
 type status struct {

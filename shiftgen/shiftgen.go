@@ -1,5 +1,10 @@
-// Package main generates method receivers functions for structs to implement
-// shift Inserter and Updater interfaces.
+// Command shiftgen generates method receivers functions for structs to implement
+// shift Inserter and Updater interfaces. The implementations insert and update
+// rows in mysql.
+//
+// Note shiftgen does not support generating GetMetadata functions for
+// MetadataInserter or MetadataUpdater since it is orthogonal to inserting
+// and updating domain entity rows.
 //
 //  Usage:
 //    //go:generate shiftgen -table=model_table -inserter=InsertReq -updaters=UpdateReq,CompleteReq

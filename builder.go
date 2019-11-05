@@ -7,12 +7,27 @@ import (
 // TODO(corver): Possibly support explicit shifting to status X from different
 //  statuses (Y and Z) each with different requests (XFromYReq, XFromZReq).
 
+type option func(*FSM)
+
+// WithMetadata provides an option to enable event metadata with a FSM.
+func WithMetadata() option {
+	return func(fsm *FSM) {
+		fsm.withMetadata = true
+	}
+}
+
 // NewFSM returns a new FSM builder.
-func NewFSM(events rsql.EventsTableInt) initer {
-	return initer(builder{
+func NewFSM(events rsql.EventsTableInt, opts ...option) initer {
+	fsm := FSM{
 		states: make(map[Status]status),
 		events: events,
-	})
+	}
+
+	for _, opt := range opts {
+		opt(&fsm)
+	}
+
+	return initer(builder(fsm))
 }
 
 type builder FSM

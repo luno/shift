@@ -19,7 +19,7 @@ var schemas = []string{`
     dob datetime not null,
     amount varchar(255),
 
-	status     tinyint not null,
+    status     tinyint not null,
     created_at datetime not null,
     updated_at datetime not null,
 
@@ -30,6 +30,7 @@ var schemas = []string{`
     foreign_id bigint not null,
     timestamp datetime not null,
     type tinyint not null,
+    metadata blob,
 
     primary key (id)
   );`, `
