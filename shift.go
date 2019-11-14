@@ -75,45 +75,54 @@ type FSM struct {
 
 // Insert returns the id of the newly inserted domain model.
 func (fsm *FSM) Insert(ctx context.Context, dbc *sql.DB, inserter Inserter) (int64, error) {
-	var (
-		st = fsm.insertStatus
-	)
-	if !sameType(fsm.states[st].req, inserter) {
-		return 0, errMismatchStatusReq
-	}
-
 	tx, err := dbc.Begin()
 	if err != nil {
 		return 0, err
 	}
 	defer tx.Rollback()
 
+	id, notify, err := fsm.InsertTx(ctx, tx, inserter)
+	if err != nil {
+		return 0,  err
+	}
+	defer notify()
+
+	return id, tx.Commit()
+}
+
+func (fsm *FSM) InsertTx(ctx context.Context, tx *sql.Tx, inserter Inserter) (int64, rsql.NotifyFunc, error) {
+	var (
+		st = fsm.insertStatus
+	)
+	if !sameType(fsm.states[st].req, inserter) {
+		return 0, nil, errMismatchStatusReq
+	}
+
 	id, err := inserter.Insert(ctx, tx, st)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 
 	var metadata []byte
 	if fsm.withMetadata {
 		meta, ok := inserter.(MetadataInserter)
 		if !ok {
-			return 0, errors.New("inserter without metadata")
+			return 0, nil, errors.New("inserter without metadata")
 		}
 
 		var err error
 		metadata, err = meta.GetMetadata(ctx, tx, id, st)
 		if err != nil {
-			return 0, err
+			return 0, nil, err
 		}
 	}
 
 	notify, err := fsm.events.InsertWithMetadata(ctx, tx, id, fsm.states[st].t, metadata)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
-	defer notify()
 
-	return id, tx.Commit()
+	return id, notify, err
 }
 
 func (fsm *FSM) Update(ctx context.Context, dbc *sql.DB, from Status, to Status, updater Updater) error {
