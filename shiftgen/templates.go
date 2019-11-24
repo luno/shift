@@ -27,13 +27,13 @@ func (一 {{.Type}}) Update(ctx context.Context, tx *sql.Tx,from shift.Status,
 	)
 
 	q.WriteString("update {{.Table}} set {{col .StatusField}}=?, {{col "updated_at"}}=? ")
-	args = append(args, to.Enum(), time.Now())
+	args = append(args, to.ShiftStatus(), time.Now())
 {{range .Fields}}
 	q.WriteString(", {{col .Col}}=?")
 	args = append(args, 一.{{.Name}})
 {{end}}
 	q.WriteString(" where {{col "id"}}=? and {{col .StatusField}}=?")
-	args = append(args, 一.ID, from.Enum())
+	args = append(args, 一.ID, from.ShiftStatus())
 
 	res, err := tx.ExecContext(ctx, q.String(), args...)
 	if err != nil {
@@ -62,7 +62,7 @@ func (一 {{.Type}}) Insert(ctx context.Context, tx *sql.Tx,st shift.Status) (in
 	)
 
 	q.WriteString("insert into {{.Table}} set {{col .StatusField}}=?, {{col "created_at"}}=?, {{col "updated_at"}}=? ")
-	args = append(args, st.Enum(), time.Now(), time.Now())
+	args = append(args, st.ShiftStatus(), time.Now(), time.Now())
 {{range .Fields}}
 	q.WriteString(", {{col .Col}}=?")
 	args = append(args, 一.{{.Name}})

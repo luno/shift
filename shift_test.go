@@ -32,9 +32,7 @@ type complete struct {
 
 type TestStatus int
 
-func (s TestStatus) ShiftStatus() {}
-
-func (s TestStatus) Enum() int {
+func (s TestStatus) ShiftStatus() int {
 	return int(s)
 }
 

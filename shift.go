@@ -21,8 +21,7 @@ import (
 //
 // The canonical implementation is:
 //	type MyStatus int
-//	func (s MyStatus) ShiftStatus() {}
-//	func (s MyStatus) Enum() int {
+//	func (s MyStatus) ShiftStatus() int {
 //		return int(s)
 //	}
 //	func (s MyStatus) ReflexType() int {
@@ -33,8 +32,7 @@ import (
 //		StatusInsert  MyStatus = 1
 //	)
 type Status interface {
-	Enum() int
-	ShiftStatus()
+	ShiftStatus() int
 	ReflexType() int
 }
 
