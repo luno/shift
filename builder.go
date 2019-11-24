@@ -1,9 +1,5 @@
 package shift
 
-import (
-	"github.com/luno/reflex/rsql"
-)
-
 // TODO(corver): Possibly support explicit shifting to status X from different
 //  statuses (Y and Z) each with different requests (XFromYReq, XFromZReq).
 
@@ -17,7 +13,7 @@ func WithMetadata() option {
 }
 
 // NewFSM returns a new FSM builder.
-func NewFSM(events rsql.EventsTableInt, opts ...option) initer {
+func NewFSM(events eventInserter, opts ...option) initer {
 	fsm := FSM{
 		states: make(map[Status]status),
 		events: events,

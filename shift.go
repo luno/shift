@@ -66,8 +66,15 @@ type MetadataUpdater interface {
 	GetMetadata(ctx context.Context, tx *sql.Tx, from Status, to Status) ([]byte, error)
 }
 
+// eventInserter inserts reflex events into a sql DB table.
+// It is implemented by rsql.EventsTableInt.
+type eventInserter interface {
+	InsertWithMetadata(ctx context.Context, tx *sql.Tx, foreignID int64,
+		typ reflex.EventType, metadata []byte) (rsql.NotifyFunc, error)
+}
+
 type FSM struct {
-	events       rsql.EventsTableInt
+	events       eventInserter
 	states       map[Status]status
 	insertStatus Status
 	withMetadata bool
@@ -83,7 +90,7 @@ func (fsm *FSM) Insert(ctx context.Context, dbc *sql.DB, inserter Inserter) (int
 
 	id, notify, err := fsm.InsertTx(ctx, tx, inserter)
 	if err != nil {
-		return 0,  err
+		return 0, err
 	}
 	defer notify()
 
