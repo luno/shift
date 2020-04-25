@@ -83,6 +83,7 @@ func connect() (*sql.DB, error) {
 func setup(t *testing.T) *sql.DB {
 	dbc, err := connect()
 	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, dbc.Close()) })
 
 	for _, s := range schemas {
 		_, err := dbc.Exec(s)

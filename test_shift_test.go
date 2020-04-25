@@ -78,7 +78,6 @@ func TestTestFSM(t *testing.T) {
 	for _, test := range cases {
 		t.Run(test.name, func(t *testing.T) {
 			dbc := setup(t)
-			defer dbc.Close()
 
 			err := shift.TestFSM(t, dbc, test.fsm)
 			if test.err == "" {

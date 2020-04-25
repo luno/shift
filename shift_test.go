@@ -55,14 +55,12 @@ var fsm = shift.NewFSM(events).
 
 func TestAboveFSM(t *testing.T) {
 	dbc := setup(t)
-	defer dbc.Close()
 
 	require.NoError(t, shift.TestFSM(t, dbc, fsm))
 }
 
 func TestBasic(t *testing.T) {
 	dbc := setup(t)
-	defer dbc.Close()
 
 	t0 := time.Now().Truncate(time.Second)
 	amount := Currency{Valid: true, Amount: 99}

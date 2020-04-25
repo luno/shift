@@ -1,4 +1,5 @@
 # Shift
+![Go](https://github.com/luno/shift/workflows/Go/badge.svg?branch=master) 
 [![Go Report Card](https://goreportcard.com/badge/github.com/luno/shift?style=flat-square)](https://goreportcard.com/report/github.com/luno/shift)
 [![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](http://godoc.org/github.com/luno/shift)
 
