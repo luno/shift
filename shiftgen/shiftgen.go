@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"flag"
 	"go/ast"
+	"go/format"
 	"go/parser"
 	"go/token"
 	"io"
@@ -221,7 +222,12 @@ func writeOutput(data Data, pwd string) error {
 	}
 
 	outname := path.Join(pwd, *outFile)
-	return ioutil.WriteFile(outname, out.Bytes(), 0644)
+	outFmt, err := format.Source(out.Bytes())
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(outname, outFmt, 0644)
 }
 
 var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")

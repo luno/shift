@@ -5,17 +5,17 @@ package shift_test
 import (
 	"context"
 	"database/sql"
-	"strings"
-	"time"
 	"github.com/luno/jettison/errors"
 	"github.com/luno/jettison/j"
 	"github.com/luno/shift"
+	"strings"
+	"time"
 )
 
-// Insert inserts a new tests table entity. All the fields of the 
-// i receiver are set, as well as status, created_at and updated_at. 
+// Insert inserts a new tests table entity. All the fields of the
+// i receiver are set, as well as status, created_at and updated_at.
 // The newly created entity id is returned on success or an error.
-func (一 i) Insert(ctx context.Context, tx *sql.Tx,st shift.Status) (int64, error) {
+func (一 i) Insert(ctx context.Context, tx *sql.Tx, st shift.Status) (int64, error) {
 	var (
 		q    strings.Builder
 		args []interface{}
@@ -46,9 +46,9 @@ func (一 i) Insert(ctx context.Context, tx *sql.Tx,st shift.Status) (int64, err
 }
 
 // Update updates the status of a tests table entity. All the fields of the
-// u receiver are updated, as well as status and updated_at. 
+// u receiver are updated, as well as status and updated_at.
 // The entity id is returned on success or an error.
-func (一 u) Update(ctx context.Context, tx *sql.Tx,from shift.Status, 
+func (一 u) Update(ctx context.Context, tx *sql.Tx, from shift.Status,
 	to shift.Status) (int64, error) {
 	var (
 		q    strings.Builder
