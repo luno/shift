@@ -11,6 +11,17 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: test
+        ports:
+          - 3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
     steps:
 
     - name: Set up Go
@@ -33,4 +44,4 @@ jobs:
       run: go build -v .
 
     - name: Test
-      run: go test ./...
+      run: go test -db_test_base="root@tcp(localhost:${{ job.services.mysql.ports[3306] }})/test?" ./...
