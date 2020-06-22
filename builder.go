@@ -12,6 +12,13 @@ func WithMetadata() option {
 	}
 }
 
+// WithValidation provides an option to enable insert/update validation.
+func WithValidation() option {
+	return func(fsm *FSM) {
+		fsm.withValidation = true
+	}
+}
+
 // NewFSM returns a new FSM builder.
 func NewFSM(events eventInserter, opts ...option) initer {
 	fsm := FSM{

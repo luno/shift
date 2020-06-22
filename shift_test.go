@@ -7,6 +7,9 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/luno/jettison/errors"
+	"github.com/luno/jettison/j"
+	"github.com/luno/jettison/jtest"
 	"github.com/luno/reflex"
 	"github.com/luno/reflex/rsql"
 	"github.com/luno/shift"
@@ -107,5 +110,52 @@ func assertUser(t *testing.T, dbc *sql.DB, stream reflex.StreamFunc, id int64,
 		require.NoError(t, err)
 		require.Equal(t, int(exE), e.Type.ReflexType())
 	}
+}
 
+func (ii i) Validate(ctx context.Context, tx *sql.Tx, id int64, status shift.Status) error {
+	if id > 1 {
+		return errInsertInvalid
+	}
+	return nil
+}
+
+func (uu u) Validate(ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status) error {
+	if from.ShiftStatus() == to.ShiftStatus() {
+		return errUpdateInvalid
+	}
+	return nil
+}
+
+var (
+	errInsertInvalid = errors.New("only single row permitted", j.C("ERR_d9ec7823de79aa28"))
+	errUpdateInvalid = errors.New("only single row permitted", j.C("ERR_e67f85dcb425e083"))
+)
+
+func TestWithValidation(t *testing.T) {
+	dbc := setup(t)
+	defer dbc.Close()
+
+	fsm := shift.NewFSM(events, shift.WithValidation()).
+		Insert(s(1), i{}, s(2)).
+		Update(s(2), u{}, s(2)). // Allow 2>2 update, validation will fail.
+		Build()
+
+	ctx := context.Background()
+
+	// First insert is ok
+	id, err := fsm.Insert(ctx, dbc, i{})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), id)
+
+	// Second insert fails.
+	_, err = fsm.Insert(ctx, dbc, i{})
+	jtest.Require(t, errInsertInvalid, err)
+
+	// Update from 1 > 2 is ok
+	err = fsm.Update(ctx, dbc, s(1), s(2), u{ID: id})
+	require.NoError(t, err)
+
+	// Update from 2 > 2 fails
+	err = fsm.Update(ctx, dbc, s(2), s(2), u{ID: id, U1: true})
+	jtest.Require(t, errUpdateInvalid, err)
 }

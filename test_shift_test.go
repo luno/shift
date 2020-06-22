@@ -15,6 +15,7 @@ import (
 )
 
 //go:generate shiftgen -inserter=i -updaters=u -table=tests -out=gen_2_test.go
+
 type i struct {
 	I1 int64
 	I2 string

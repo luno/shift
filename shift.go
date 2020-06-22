@@ -64,6 +64,26 @@ type MetadataUpdater interface {
 	GetMetadata(ctx context.Context, tx *sql.Tx, from Status, to Status) ([]byte, error)
 }
 
+// ValidatingInserter extends Inserter with validation. Assuming the majority
+// validations will be successful, the validation is done after event insertion
+// to allow maximum flexibility sacrificing invalid path performance.
+type ValidatingInserter interface {
+	Inserter
+
+	// Validate returns an error if the insert is not valid.
+	Validate(ctx context.Context, tx *sql.Tx, id int64, status Status) error
+}
+
+// ValidatingUpdater extends Updater with validation. Assuming the majority
+// validations will be successful, the validation is done after event insertion
+// to allow maximum flexibility sacrificing invalid path performance.
+type ValidatingUpdater interface {
+	Updater
+
+	// Validate returns an error if the update is not valid.
+	Validate(ctx context.Context, tx *sql.Tx, from Status, to Status) error
+}
+
 // eventInserter inserts reflex events into a sql DB table.
 // It is implemented by rsql.EventsTableInt.
 type eventInserter interface {
@@ -72,10 +92,11 @@ type eventInserter interface {
 }
 
 type FSM struct {
-	events       eventInserter
-	states       map[Status]status
-	insertStatus Status
-	withMetadata bool
+	events         eventInserter
+	states         map[Status]status
+	insertStatus   Status
+	withMetadata   bool
+	withValidation bool
 }
 
 // Insert returns the id of the newly inserted domain model.
@@ -125,6 +146,18 @@ func (fsm *FSM) InsertTx(ctx context.Context, tx *sql.Tx, inserter Inserter) (in
 	notify, err := fsm.events.InsertWithMetadata(ctx, tx, id, fsm.states[st].t, metadata)
 	if err != nil {
 		return 0, nil, err
+	}
+
+	if fsm.withValidation {
+		validate, ok := inserter.(ValidatingInserter)
+		if !ok {
+			return 0, nil, errors.New("inserter without validate method")
+		}
+
+		err = validate.Validate(ctx, tx, id, st)
+		if err != nil {
+			return 0, nil, err
+		}
 	}
 
 	return id, notify, err
@@ -180,7 +213,24 @@ func (fsm *FSM) UpdateTx(ctx context.Context, tx *sql.Tx, from Status, to Status
 		}
 	}
 
-	return fsm.events.InsertWithMetadata(ctx, tx, id, fsm.states[to].t, metadata)
+	notify, err := fsm.events.InsertWithMetadata(ctx, tx, id, fsm.states[to].t, metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	if fsm.withValidation {
+		validate, ok := updater.(ValidatingUpdater)
+		if !ok {
+			return nil, errors.New("updater without validate method")
+		}
+
+		err = validate.Validate(ctx, tx, from, to)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return notify, nil
 }
 
 type status struct {
