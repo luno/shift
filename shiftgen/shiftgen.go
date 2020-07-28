@@ -55,10 +55,12 @@ type Field struct {
 }
 
 type Struct struct {
-	Table       string
-	Type        string
-	StatusField string
-	Fields      []Field
+	Table           string
+	Type            string
+	StatusField     string
+	Fields          []Field
+	CustomCreatedAt bool
+	CustomUpdatedAt bool
 }
 
 type Data struct {
@@ -117,7 +119,7 @@ func main() {
 			}
 
 			if data.Package != "" && data.Package != p {
-				log.Fatal("Struct types defined in seperate packages")
+				log.Fatal("Struct types defined in separate packages")
 			}
 			data.Package = p
 
@@ -144,6 +146,14 @@ func main() {
 				col := toSnakeCase(name)
 				if f.Tag != nil && strings.HasPrefix(f.Tag.Value, tagPrefix) {
 					col = reflect.StructTag(f.Tag.Value[1 : len(f.Tag.Value)-1]).Get(Tag) // Delete first and last quotation
+				}
+
+				if col == "created_at" {
+					st.CustomCreatedAt = true
+				}
+
+				if col == "updated_at" {
+					st.CustomUpdatedAt = true
 				}
 
 				field := Field{
@@ -183,7 +193,7 @@ func main() {
 	}
 }
 
-func execTpl(out io.Writer, tpl string, data interface{}) error {
+func execTpl(out io.Writer, tpl string, data Data) error {
 	t := template.New("").Funcs(map[string]interface{}{
 		"col": quoteCol,
 	})
@@ -203,21 +213,9 @@ func quoteCol(colName string) string {
 func writeOutput(data Data, pwd string) error {
 	var out bytes.Buffer
 
-	err := execTpl(&out, headerTpl, data)
+	err := execTpl(&out, tpl, data)
 	if err != nil {
 		return err
-	}
-	if data.Inserter != nil {
-		err := execTpl(&out, inserterTpl, *data.Inserter)
-		if err != nil {
-			return err
-		}
-	}
-	for _, u := range data.Updaters {
-		err := execTpl(&out, updaterTpl, u)
-		if err != nil {
-			return err
-		}
 	}
 
 	outname := path.Join(pwd, *outFile)

@@ -59,7 +59,7 @@ var fsm = shift.NewFSM(events).
 func TestAboveFSM(t *testing.T) {
 	dbc := setup(t)
 
-	require.NoError(t, shift.TestFSM(t, dbc, fsm))
+	jtest.RequireNil(t, shift.TestFSM(t, dbc, fsm))
 }
 
 func TestBasic(t *testing.T) {
@@ -71,20 +71,20 @@ func TestBasic(t *testing.T) {
 
 	// Init model
 	id, err := fsm.Insert(ctx, dbc, insert{Name: "insertMe", DateOfBirth: t0})
-	require.NoError(t, err)
+	jtest.RequireNil(t, err)
 	require.Equal(t, int64(1), id)
 
 	assertUser(t, dbc, events.ToStream(dbc), id, "insertMe", t0, Currency{}, 1)
 
 	// Update model
 	err = fsm.Update(ctx, dbc, StatusInit, StatusUpdate, update{ID: id, Name: "updateMe", Amount: amount})
-	require.NoError(t, err)
+	jtest.RequireNil(t, err)
 
 	assertUser(t, dbc, events.ToStream(dbc), id, "updateMe", t0, amount, 1, 2)
 
 	// Complete model
 	err = fsm.Update(ctx, dbc, StatusUpdate, StatusComplete, complete{ID: id})
-	require.NoError(t, err)
+	jtest.RequireNil(t, err)
 
 	assertUser(t, dbc, events.ToStream(dbc), id, "updateMe", t0, amount, 1, 2, 3)
 }
@@ -96,7 +96,7 @@ func assertUser(t *testing.T, dbc *sql.DB, stream reflex.StreamFunc, id int64,
 	var dob time.Time
 	err := dbc.QueryRow("select name, dob, amount "+
 		"from users where id=?", id).Scan(&name, &dob, &amount)
-	require.NoError(t, err)
+	jtest.RequireNil(t, err)
 	require.Equal(t, exName, name.String)
 	require.Equal(t, exDOB.UTC(), dob.UTC())
 	require.Equal(t, exAmount, amount)
@@ -104,10 +104,10 @@ func assertUser(t *testing.T, dbc *sql.DB, stream reflex.StreamFunc, id int64,
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	sc, err := stream(ctx, "")
-	require.NoError(t, err)
+	jtest.RequireNil(t, err)
 	for _, exE := range exEvents {
 		e, err := sc.Recv()
-		require.NoError(t, err)
+		jtest.RequireNil(t, err)
 		require.Equal(t, int(exE), e.Type.ReflexType())
 	}
 }
@@ -137,25 +137,78 @@ func TestWithValidation(t *testing.T) {
 
 	fsm := shift.NewFSM(events, shift.WithValidation()).
 		Insert(s(1), i{}, s(2)).
-		Update(s(2), u{}, s(2)). // Allow 2>2 update, validation will fail.
+		Update(s(2), u{}, s(2)). // Allow 2 -> 2 update, validation will fail.
 		Build()
 
 	ctx := context.Background()
 
 	// First insert is ok
-	id, err := fsm.Insert(ctx, dbc, i{})
-	require.NoError(t, err)
+	id, err := fsm.Insert(ctx, dbc, i{I3: time.Now()})
+	jtest.RequireNil(t, err)
 	require.Equal(t, int64(1), id)
 
 	// Second insert fails.
-	_, err = fsm.Insert(ctx, dbc, i{})
+	_, err = fsm.Insert(ctx, dbc, i{I3: time.Now()})
 	jtest.Require(t, errInsertInvalid, err)
 
-	// Update from 1 > 2 is ok
+	// Update from 1 -> 2 is ok
 	err = fsm.Update(ctx, dbc, s(1), s(2), u{ID: id})
-	require.NoError(t, err)
+	jtest.RequireNil(t, err)
 
-	// Update from 2 > 2 fails
+	// Update from 2 -> 2 fails
 	err = fsm.Update(ctx, dbc, s(2), s(2), u{ID: id, U1: true})
 	jtest.Require(t, errUpdateInvalid, err)
+}
+
+//go:generate shiftgen -inserter=i_t -updaters=u_t -table=tests -out=gen_3_test.go
+
+type i_t struct {
+	I1        int64
+	I2        string
+	I3        time.Time
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type u_t struct {
+	ID        int64
+	U1        bool
+	U2        Currency
+	U3        sql.NullTime
+	U4        sql.NullString
+	U5        []byte
+	UpdatedAt time.Time
+}
+
+func TestWithTimestamps(t *testing.T) {
+	dbc := setup(t)
+	defer dbc.Close()
+
+	fsm := shift.NewFSM(events).
+		Insert(s(1), i_t{}, s(2)).
+		Update(s(2), u_t{}, s(2)). // Allow 2 -> 2 update, validation will fail.
+		Build()
+
+	ctx := context.Background()
+	t0 := time.Now()
+
+	id, err := fsm.Insert(ctx, dbc, i_t{I3: time.Now(), UpdatedAt: t0})
+	require.Error(t, err, "created_at is required")
+	require.Zero(t, 0)
+
+	id, err = fsm.Insert(ctx, dbc, i_t{I3: time.Now(), CreatedAt: t0})
+	require.Error(t, err, "updated_at is required")
+	require.Zero(t, 0)
+
+	// First insert is ok
+	id, err = fsm.Insert(ctx, dbc, i_t{I3: time.Now(), CreatedAt: t0, UpdatedAt: t0})
+	jtest.RequireNil(t, err)
+	require.Equal(t, int64(1), id)
+
+	err = fsm.Update(ctx, dbc, s(1), s(2), u_t{ID: id})
+	require.Error(t, err, "updated_at is required")
+
+	// Update from 1 -> 2 is ok
+	err = fsm.Update(ctx, dbc, s(1), s(2), u_t{ID: id, UpdatedAt: t0})
+	jtest.RequireNil(t, err)
 }

@@ -131,6 +131,8 @@ github.com/luno/jettison v0.0.0-20191025124352-c2fa810dd1ee h1:jlsbXy8A6kLOfO9u8
 github.com/luno/jettison v0.0.0-20191025124352-c2fa810dd1ee/go.mod h1:IVntidW2Z2luwfdIpwgvUZSwnRk82RRPfoj0h2P7W+c=
 github.com/luno/jettison v0.0.0-20191223144501-7fe4a971f291 h1:Tf2Q5Bwj6IlooSxWVcUsEfUdoJs43RmOOpgkeCn8NnQ=
 github.com/luno/jettison v0.0.0-20191223144501-7fe4a971f291/go.mod h1:IVntidW2Z2luwfdIpwgvUZSwnRk82RRPfoj0h2P7W+c=
+github.com/luno/jettison v0.0.0-20200724121914-e6337e490186 h1:CoQKLPwrfQ7KEUGkqBqrG4G1f8H/fDS1tM7wJwByhlY=
+github.com/luno/jettison v0.0.0-20200724121914-e6337e490186/go.mod h1:IVntidW2Z2luwfdIpwgvUZSwnRk82RRPfoj0h2P7W+c=
 github.com/luno/reflex v0.0.0-20200424121711-2f56495726e6 h1:rlTl3+LOI64U8XTxKmfTS4XEbzR678eotyE5DaLFYrU=
 github.com/luno/reflex v0.0.0-20200424121711-2f56495726e6/go.mod h1:sxS2aAU6g9cosBDyYA+Zq2bxthgdEOwFSkyeNLIKJJA=
 github.com/mattn/go-colorable v0.1.2/go.mod h1:U0ppj6V5qS13XJ6of8GYAs25YV2eR4EVcfRqFIhoBtE=

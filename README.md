@@ -53,6 +53,11 @@ Some properties:
 - Entering a subsequent states always updates an existing row.
 - Subsequent states' structs must therefore contain an ID field. 
 - Only `int64` ID fields are supported.
+- Created and updated times are guaranteed to be reliable:
+  - By default, `time.Now()` is used to set the timestamp columns.
+  - If specified in the inserter or updater, shift will use the provided time. This can be useful for testing.
+  - Shift will error if a zero time is provided (i.e. if time is not set)
+  - Columns must be named `created_at` and `updated_at`
 - All transitions are recorded as [reflex](https://github.com/luno/reflex) events.
 
 # Usage
