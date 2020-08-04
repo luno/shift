@@ -121,7 +121,7 @@ func (fsm *FSM) InsertTx(ctx context.Context, tx *sql.Tx, inserter Inserter) (in
 		st = fsm.insertStatus
 	)
 	if !sameType(fsm.states[st].req, inserter) {
-		return 0, nil, errMismatchStatusReq
+		return 0, nil, errors.New("mismatching status and req")
 	}
 
 	id, err := inserter.Insert(ctx, tx, st)
@@ -182,16 +182,16 @@ func (fsm *FSM) Update(ctx context.Context, dbc *sql.DB, from Status, to Status,
 func (fsm *FSM) UpdateTx(ctx context.Context, tx *sql.Tx, from Status, to Status, updater Updater) (rsql.NotifyFunc, error) {
 	t, ok := fsm.states[to]
 	if !ok {
-		return nil, errUnknownStatus
+		return nil, errors.New("unknown to status")
 	}
 	if !sameType(t.req, updater) {
-		return nil, errMismatchStatusReq
+		return nil, errors.New("mismatching status and req")
 	}
 	f, ok := fsm.states[from]
 	if !ok {
-		return nil, errUnknownStatus
+		return nil, errors.New("unknown from status")
 	} else if !f.next[to] {
-		return nil, errInvalidTransition
+		return nil, errors.New("invalid transition")
 	}
 
 	id, err := updater.Update(ctx, tx, from, to)
