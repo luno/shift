@@ -41,22 +41,23 @@ func (一 {{.Type}}) Insert(ctx context.Context, tx *sql.Tx, st shift.Status) (i
 
 	{{end -}}
 
-	q.WriteString("insert into {{.Table}} set {{col .StatusField}}=?{{if not .CustomCreatedAt}}, {{col "created_at"}}=?{{end}}{{if not .CustomCreatedAt}}, {{col "updated_at"}}=?{{end}} ")
-	args = append(args, st.ShiftStatus(){{if not .CustomCreatedAt}}, time.Now(){{end}}{{if not .CustomCreatedAt}}, time.Now(){{end}})
+	q.WriteString("insert into {{.Table}} set {{if .HasID}}id=?, {{end}}{{col .StatusField}}=?{{if not .CustomCreatedAt}}, {{col "created_at"}}=?{{end}}{{if not .CustomCreatedAt}}, {{col "updated_at"}}=?{{end}} ")
+	args = append(args, {{if .HasID}}一.ID, {{end}}st.ShiftStatus(){{if not .CustomCreatedAt}}, time.Now(){{end}}{{if not .CustomCreatedAt}}, time.Now(){{end}})
 {{range .Fields}}
 	q.WriteString(", {{col .Col}}=?")
 	args = append(args, 一.{{.Name}})
 {{end}}
-	res, err := tx.ExecContext(ctx, q.String(), args...)
+	{{if .HasID}}_{{else}}res{{end}}, err := tx.ExecContext(ctx, q.String(), args...)
 	if err != nil {
 		return 0, err
 	}
+{{if not .HasID}}
 	id, err := res.LastInsertId()
 	if err != nil {
 		return 0, err
 	}
-
-	return id, nil
+{{end}}
+	return {{if .HasID}}一.ID{{else}}id{{end}}, nil
 }
 {{ end }}{{ end }}{{ range .Updaters }}
 // Update updates the status of a {{.Table}} table entity. All the fields of the

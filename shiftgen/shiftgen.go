@@ -61,6 +61,7 @@ type Struct struct {
 	Fields          []Field
 	CustomCreatedAt bool
 	CustomUpdatedAt bool
+	HasID           bool
 }
 
 type Data struct {
@@ -127,7 +128,6 @@ func main() {
 			if !ok {
 				log.Fatalf("Found %s, but it is not a struct type", typ)
 			}
-			foundID := false
 			st := Struct{Type: typ, Table: *table, StatusField: *statusField}
 			for _, f := range s.Fields.List {
 				if len(f.Names) == 0 {
@@ -138,7 +138,7 @@ func main() {
 				}
 				name := f.Names[0].Name
 				if name == "ID" {
-					foundID = true
+					st.HasID = true
 					// Skip ID fields for updaters (since they are hardcoded)
 					continue
 				}
@@ -163,7 +163,7 @@ func main() {
 				st.Fields = append(st.Fields, field)
 			}
 			if isU {
-				if !foundID {
+				if !st.HasID {
 					log.Fatalf("Updater must contain ID field: %s", typ)
 				}
 				data.Updaters = append(data.Updaters, st)
@@ -172,9 +172,6 @@ func main() {
 			}
 
 			data.Inserter = &st
-			if foundID {
-				log.Fatalf("Inserter may not contain ID field: %s", typ)
-			}
 			return true
 		})
 	}
