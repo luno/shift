@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
 	"github.com/luno/reflex"
 	"github.com/luno/reflex/rsql"
 	"github.com/luno/shift"
@@ -26,7 +25,7 @@ type u struct {
 	ID int64
 	U1 bool
 	U2 Currency
-	U3 mysql.NullTime
+	U3 sql.NullTime
 	U4 sql.NullString
 	U5 []byte
 }

@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
 	"github.com/luno/jettison/errors"
 )
 
@@ -123,7 +122,7 @@ var (
 	sliceByteType  = reflect.TypeOf([]byte(nil))
 	boolType       = reflect.TypeOf(false)
 	stringType     = reflect.TypeOf("")
-	nullTimeType   = reflect.TypeOf(mysql.NullTime{})
+	nullTimeType   = reflect.TypeOf(sql.NullTime{})
 	nullStringType = reflect.TypeOf(sql.NullString{})
 )
 
@@ -146,7 +145,7 @@ func randVal(t reflect.Type) reflect.Value {
 	case stringType:
 		v = hex.EncodeToString(randBytes(rand.Intn(10)))
 	case nullTimeType:
-		v = mysql.NullTime{
+		v = sql.NullTime{
 			Valid: rand.Float64() < 0.5,
 			Time:  time.Now(),
 		}

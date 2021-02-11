@@ -3,7 +3,6 @@ module github.com/luno/shift
 go 1.14
 
 require (
-	github.com/go-sql-driver/mysql v1.4.1
 	github.com/kr/text v0.2.0 // indirect
 	github.com/luno/fate v0.0.0-20191017091315-567fa9070f1c // indirect
 	github.com/luno/jettison v0.0.0-20200724121914-e6337e490186
