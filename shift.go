@@ -121,7 +121,7 @@ func (fsm *FSM) InsertTx(ctx context.Context, tx *sql.Tx, inserter Inserter) (in
 		st = fsm.insertStatus
 	)
 	if !sameType(fsm.states[st].req, inserter) {
-		return 0, nil, errors.New("mismatching status and req")
+		return 0, nil, errors.Wrap(ErrInvalidType, "inserter can't be used for this transition")
 	}
 
 	id, err := inserter.Insert(ctx, tx, st)
@@ -133,7 +133,7 @@ func (fsm *FSM) InsertTx(ctx context.Context, tx *sql.Tx, inserter Inserter) (in
 	if fsm.withMetadata {
 		meta, ok := inserter.(MetadataInserter)
 		if !ok {
-			return 0, nil, errors.New("inserter without metadata")
+			return 0, nil, errors.Wrap(ErrInvalidType, "inserter without metadata")
 		}
 
 		var err error
@@ -151,7 +151,7 @@ func (fsm *FSM) InsertTx(ctx context.Context, tx *sql.Tx, inserter Inserter) (in
 	if fsm.withValidation {
 		validate, ok := inserter.(ValidatingInserter)
 		if !ok {
-			return 0, nil, errors.New("inserter without validate method")
+			return 0, nil, errors.Wrap(ErrInvalidType, "inserter without validate method")
 		}
 
 		err = validate.Validate(ctx, tx, id, st)
@@ -182,16 +182,16 @@ func (fsm *FSM) Update(ctx context.Context, dbc *sql.DB, from Status, to Status,
 func (fsm *FSM) UpdateTx(ctx context.Context, tx *sql.Tx, from Status, to Status, updater Updater) (rsql.NotifyFunc, error) {
 	t, ok := fsm.states[to]
 	if !ok {
-		return nil, errors.New("unknown to status")
+		return nil, errors.Wrap(ErrUnknownStatus, "unknown to status")
 	}
 	if !sameType(t.req, updater) {
-		return nil, errors.New("mismatching status and req")
+		return nil, errors.Wrap(ErrInvalidType, "updater can't be used for this transition")
 	}
 	f, ok := fsm.states[from]
 	if !ok {
-		return nil, errors.New("unknown from status")
+		return nil, errors.Wrap(ErrUnknownStatus, "unknown from status")
 	} else if !f.next[to] {
-		return nil, errors.New("invalid transition")
+		return nil, errors.Wrap(ErrInvalidStateTransition, "")
 	}
 
 	id, err := updater.Update(ctx, tx, from, to)
@@ -203,7 +203,7 @@ func (fsm *FSM) UpdateTx(ctx context.Context, tx *sql.Tx, from Status, to Status
 	if fsm.withMetadata {
 		meta, ok := updater.(MetadataUpdater)
 		if !ok {
-			return nil, errors.New("updater without metadata")
+			return nil, errors.Wrap(ErrInvalidType, "updater without metadata")
 		}
 
 		var err error
@@ -221,7 +221,7 @@ func (fsm *FSM) UpdateTx(ctx context.Context, tx *sql.Tx, from Status, to Status
 	if fsm.withValidation {
 		validate, ok := updater.(ValidatingUpdater)
 		if !ok {
-			return nil, errors.New("updater without validate method")
+			return nil, errors.Wrap(ErrInvalidType, "updater without validate method")
 		}
 
 		err = validate.Validate(ctx, tx, from, to)
