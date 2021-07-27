@@ -13,6 +13,8 @@ import (
 	"github.com/luno/jettison/errors"
 )
 
+// TODO(corver): Implement TestArcFSM
+
 // TestFSM tests the provided FSM instance by driving it through all possible
 // state transitions using fuzzed data. It ensures all states are reachable and
 // that the sql queries match the schema.
@@ -20,8 +22,8 @@ func TestFSM(_ testing.TB, dbc *sql.DB, fsm *FSM) error {
 	if fsm.insertStatus == nil {
 		return errors.New("fsm without insert status not supported")
 	}
-	found := map[Status]bool{
-		fsm.insertStatus: true,
+	found := map[int]bool{
+		fsm.insertStatus.ShiftStatus(): true,
 	}
 
 	paths := buildPaths(fsm.states, fsm.insertStatus)
@@ -49,7 +51,7 @@ func TestFSM(_ testing.TB, dbc *sql.DB, fsm *FSM) error {
 				return errors.Wrap(err, msg)
 			}
 			from = up.st
-			found[up.st] = true
+			found[up.st.ShiftStatus()] = true
 		}
 	}
 	for st := range fsm.states {
@@ -92,13 +94,13 @@ func randomInsert(req interface{}) (Inserter, error) {
 	return s.Interface().(Inserter), nil
 }
 
-func buildPaths(states map[Status]status, from Status) [][]status {
+func buildPaths(states map[int]status, from Status) [][]status {
 	var res [][]status
-	here := states[from]
+	here := states[from.ShiftStatus()]
 	hasEnd := len(here.next) == 0
-	delete(states, from) // Break cycles
+	delete(states, from.ShiftStatus()) // Break cycles
 	for next := range here.next {
-		if _, ok := states[next]; !ok {
+		if _, ok := states[next.ShiftStatus()]; !ok {
 			hasEnd = true // Stop at breaks
 			continue
 		}
@@ -107,7 +109,7 @@ func buildPaths(states map[Status]status, from Status) [][]status {
 			res = append(res, append([]status{here}, path...))
 		}
 	}
-	states[from] = here
+	states[from.ShiftStatus()] = here
 	if hasEnd {
 		res = append(res, []status{here})
 	}

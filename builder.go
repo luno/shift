@@ -1,33 +1,35 @@
 package shift
 
-// TODO(corver): Possibly support explicit shifting to status X from different
-//  statuses (Y and Z) each with different requests (XFromYReq, XFromZReq).
+type option func(*options)
 
-type option func(*FSM)
+type options struct {
+	withMetadata   bool
+	withValidation bool
+}
 
 // WithMetadata provides an option to enable event metadata with a FSM.
 func WithMetadata() option {
-	return func(fsm *FSM) {
-		fsm.withMetadata = true
+	return func(o *options) {
+		o.withMetadata = true
 	}
 }
 
 // WithValidation provides an option to enable insert/update validation.
 func WithValidation() option {
-	return func(fsm *FSM) {
-		fsm.withValidation = true
+	return func(o *options) {
+		o.withValidation = true
 	}
 }
 
 // NewFSM returns a new FSM builder.
 func NewFSM(events eventInserter, opts ...option) initer {
 	fsm := FSM{
-		states: make(map[Status]status),
+		states: make(map[int]status),
 		events: events,
 	}
 
 	for _, opt := range opts {
-		opt(&fsm)
+		opt(&fsm.options)
 	}
 
 	return initer(builder(fsm))
@@ -39,7 +41,7 @@ type initer builder
 
 // Insert returns a FSM builder with the provided insert status.
 func (c initer) Insert(st Status, inserter Inserter, next ...Status) builder {
-	c.states[st] = status{
+	c.states[st.ShiftStatus()] = status{
 		st:     st,
 		req:    inserter,
 		t:      st,
@@ -52,11 +54,11 @@ func (c initer) Insert(st Status, inserter Inserter, next ...Status) builder {
 
 // Update returns a FSM builder with the provided status update added.
 func (b builder) Update(st Status, updater Updater, next ...Status) builder {
-	if _, has := b.states[st]; has {
+	if _, has := b.states[st.ShiftStatus()]; has {
 		// Ok to panic since it is build time.
 		panic("state already added")
 	}
-	b.states[st] = status{
+	b.states[st.ShiftStatus()] = status{
 		st:     st,
 		req:    updater,
 		t:      st,

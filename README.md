@@ -60,6 +60,10 @@ Some properties:
   - Columns must be named `created_at` and `updated_at`
 - All transitions are recorded as [reflex](https://github.com/luno/reflex) events.
 
+Differences of ArcFSM from FSM:
+- For improved flexibility, ArcFSM was added without the transition restrictions of FSM.
+- It supports arbitrary initial states and arbitrary transitions.
+
 # Usage
 
 The above state machine is defined by:

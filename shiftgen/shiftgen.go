@@ -17,7 +17,6 @@ import (
 	"go/parser"
 	"go/token"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -25,6 +24,8 @@ import (
 	"regexp"
 	"strings"
 	"text/template"
+
+	"golang.org/x/tools/imports"
 )
 
 // Tag is the shiftgen struct tag that should be used to override sql column names
@@ -39,6 +40,8 @@ var (
 		"The struct types (comma seperated) to generate Update methods for")
 	inserter = flag.String("inserter", "",
 		"The struct type to generate a Insert method for")
+	inserters = flag.String("inserters", "",
+		"The ArcFSM struct types (comma seperated) to generate Insert methods for")
 	table = flag.String("table", "",
 		"The sql table name to insert and update")
 	statusField = flag.String("status_field", "status",
@@ -68,7 +71,7 @@ type Data struct {
 	Package   string
 	GenSource string
 	Updaters  []Struct
-	Inserter  *Struct
+	Inserters []Struct
 }
 
 func main() {
@@ -80,11 +83,26 @@ func main() {
 	}
 
 	ups := make(map[string]bool)
-	for _, u := range strings.Split(*updaters, ",") {
-		ups[strings.TrimSpace(u)] = true
+	if strings.TrimSpace(*updaters) != "" {
+		for _, u := range strings.Split(*updaters, ",") {
+			ups[strings.TrimSpace(u)] = true
+		}
 	}
 
-	if len(ups) == 0 && *inserter == "" {
+	if *inserter != "" && *inserters != "" {
+		log.Fatal("Either define inserter or inserters, not both")
+	}
+
+	ins := make(map[string]bool)
+	if *inserter != "" {
+		ins[*inserter] = true
+	} else if strings.TrimSpace(*inserters) != "" {
+		for _, i := range strings.Split(*inserters, ",") {
+			ins[strings.TrimSpace(i)] = true
+		}
+	}
+
+	if len(ups) == 0 && len(ins) == 0 {
 		log.Fatal("No updaters or inserter specified")
 	}
 	if *table == "" {
@@ -108,14 +126,16 @@ func main() {
 				return true
 			}
 			typ := t.Name.Name
-			isU, first := ups[typ]
-			isI := *inserter == typ
+			isU, firstU := ups[typ]
+			isI, firstI := ins[typ]
 			if !isU && !isI {
 				return true
 			}
-			if isU && !first {
+
+			if isU && !firstU {
 				log.Fatalf("Found multiple updater struct definitions: %s", typ)
-			} else if isI && data.Inserter != nil {
+			}
+			if isI && !firstI {
 				log.Fatalf("Found multiple inserter struct definitions: %s", typ)
 			}
 
@@ -168,10 +188,11 @@ func main() {
 				}
 				data.Updaters = append(data.Updaters, st)
 				ups[typ] = false
-				return true
+			} else {
+				data.Inserters = append(data.Inserters, st)
+				ins[typ] = false
 			}
 
-			data.Inserter = &st
 			return true
 		})
 	}
@@ -181,8 +202,10 @@ func main() {
 			log.Fatalf("Couldn't find updater: %v", st)
 		}
 	}
-	if *inserter != "" && data.Inserter == nil {
-		log.Fatalf("Couldn't find inserter: %v", *inserter)
+	for st, missing := range ins {
+		if missing {
+			log.Fatalf("Couldn't find inserter: %v", st)
+		}
 	}
 
 	if err := writeOutput(data, pwd); err != nil {
@@ -216,7 +239,13 @@ func writeOutput(data Data, pwd string) error {
 	}
 
 	outname := path.Join(pwd, *outFile)
-	return ioutil.WriteFile(outname, out.Bytes(), 0644)
+
+	b, err := imports.Process(outname, out.Bytes(), nil)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(outname, b, 0644)
 }
 
 var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")

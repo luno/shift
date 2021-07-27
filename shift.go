@@ -4,7 +4,12 @@
 // shift.NewFSM builds a FSM instance that allows specific mutations of
 // the domain model in the underlying sql table via inserts and updates.
 // All mutations update the status of the model, mutates some fields and
-// inserts a reflex event.
+// inserts a reflex event. Note that FSM is opinionated and has the following
+// restrictions: only a single insert status, no transitions back to
+// insert status, only a single transition per pair of statuses.
+//
+// shift.NewArcFSM builds a ArcFSM instance which is the same as an FSM
+// but without its restrictions. It supports arbitrary transitions.
 package shift
 
 import (
@@ -91,12 +96,19 @@ type eventInserter interface {
 		typ reflex.EventType, metadata []byte) (rsql.NotifyFunc, error)
 }
 
+// FSM is a defined Finite-State-Machine that allows specific mutations of
+// the domain model in the underlying sql table via inserts and updates.
+// All mutations update the status of the model, mutates some fields and
+// inserts a reflex event.
+//
+// Note that this FSM is opinionated and has the following
+// restrictions: only a single insert status, no transitions back to
+// insert status, only a single transition per pair of statuses.
 type FSM struct {
-	events         eventInserter
-	states         map[Status]status
-	insertStatus   Status
-	withMetadata   bool
-	withValidation bool
+	options
+	events       eventInserter
+	states       map[int]status
+	insertStatus Status
 }
 
 // Insert returns the id of the newly inserted domain model.
@@ -120,47 +132,11 @@ func (fsm *FSM) InsertTx(ctx context.Context, tx *sql.Tx, inserter Inserter) (in
 	var (
 		st = fsm.insertStatus
 	)
-	if !sameType(fsm.states[st].req, inserter) {
+	if !sameType(fsm.states[st.ShiftStatus()].req, inserter) {
 		return 0, nil, errors.Wrap(ErrInvalidType, "inserter can't be used for this transition")
 	}
 
-	id, err := inserter.Insert(ctx, tx, st)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	var metadata []byte
-	if fsm.withMetadata {
-		meta, ok := inserter.(MetadataInserter)
-		if !ok {
-			return 0, nil, errors.Wrap(ErrInvalidType, "inserter without metadata")
-		}
-
-		var err error
-		metadata, err = meta.GetMetadata(ctx, tx, id, st)
-		if err != nil {
-			return 0, nil, err
-		}
-	}
-
-	notify, err := fsm.events.InsertWithMetadata(ctx, tx, id, fsm.states[st].t, metadata)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	if fsm.withValidation {
-		validate, ok := inserter.(ValidatingInserter)
-		if !ok {
-			return 0, nil, errors.Wrap(ErrInvalidType, "inserter without validate method")
-		}
-
-		err = validate.Validate(ctx, tx, id, st)
-		if err != nil {
-			return 0, nil, err
-		}
-	}
-
-	return id, notify, err
+	return insertTx(ctx, tx, st, inserter, fsm.events, fsm.states[st.ShiftStatus()].t, fsm.options)
 }
 
 func (fsm *FSM) Update(ctx context.Context, dbc *sql.DB, from Status, to Status, updater Updater) error {
@@ -180,19 +156,67 @@ func (fsm *FSM) Update(ctx context.Context, dbc *sql.DB, from Status, to Status,
 }
 
 func (fsm *FSM) UpdateTx(ctx context.Context, tx *sql.Tx, from Status, to Status, updater Updater) (rsql.NotifyFunc, error) {
-	t, ok := fsm.states[to]
+	t, ok := fsm.states[to.ShiftStatus()]
 	if !ok {
 		return nil, errors.Wrap(ErrUnknownStatus, "unknown to status")
 	}
 	if !sameType(t.req, updater) {
 		return nil, errors.Wrap(ErrInvalidType, "updater can't be used for this transition")
 	}
-	f, ok := fsm.states[from]
+	f, ok := fsm.states[from.ShiftStatus()]
 	if !ok {
 		return nil, errors.Wrap(ErrUnknownStatus, "unknown from status")
 	} else if !f.next[to] {
 		return nil, errors.Wrap(ErrInvalidStateTransition, "")
 	}
+
+	return updateTx(ctx, tx, from, to, updater, fsm.events, t.t, fsm.options)
+}
+
+func insertTx(ctx context.Context, tx *sql.Tx, st Status, inserter Inserter,
+	events eventInserter, eventType reflex.EventType, opts options) (int64, rsql.NotifyFunc, error) {
+
+	id, err := inserter.Insert(ctx, tx, st)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	var metadata []byte
+	if opts.withMetadata {
+		meta, ok := inserter.(MetadataInserter)
+		if !ok {
+			return 0, nil, errors.Wrap(ErrInvalidType, "inserter without metadata")
+		}
+
+		var err error
+		metadata, err = meta.GetMetadata(ctx, tx, id, st)
+		if err != nil {
+			return 0, nil, err
+		}
+	}
+
+	notify, err := events.InsertWithMetadata(ctx, tx, id, eventType, metadata)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	if opts.withValidation {
+		validate, ok := inserter.(ValidatingInserter)
+		if !ok {
+			return 0, nil, errors.Wrap(ErrInvalidType, "inserter without validate method")
+		}
+
+		err = validate.Validate(ctx, tx, id, st)
+		if err != nil {
+			return 0, nil, err
+		}
+	}
+
+	return id, notify, err
+}
+
+func updateTx(ctx context.Context, tx *sql.Tx, from Status, to Status, updater Updater,
+	events eventInserter, eventType reflex.EventType, opts options) (rsql.NotifyFunc, error) {
 
 	id, err := updater.Update(ctx, tx, from, to)
 	if err != nil {
@@ -200,7 +224,7 @@ func (fsm *FSM) UpdateTx(ctx context.Context, tx *sql.Tx, from Status, to Status
 	}
 
 	var metadata []byte
-	if fsm.withMetadata {
+	if opts.withMetadata {
 		meta, ok := updater.(MetadataUpdater)
 		if !ok {
 			return nil, errors.Wrap(ErrInvalidType, "updater without metadata")
@@ -213,12 +237,12 @@ func (fsm *FSM) UpdateTx(ctx context.Context, tx *sql.Tx, from Status, to Status
 		}
 	}
 
-	notify, err := fsm.events.InsertWithMetadata(ctx, tx, id, fsm.states[to].t, metadata)
+	notify, err := events.InsertWithMetadata(ctx, tx, id, eventType, metadata)
 	if err != nil {
 		return nil, err
 	}
 
-	if fsm.withValidation {
+	if opts.withValidation {
 		validate, ok := updater.(ValidatingUpdater)
 		if !ok {
 			return nil, errors.Wrap(ErrInvalidType, "updater without validate method")

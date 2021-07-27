@@ -14,11 +14,7 @@ import (
 	"github.com/luno/shift"
 )
 
-// Reference import to suppress errors if it is not otherwise used.
-var _ = time.Now
-
-{{ if .Inserter -}}
-{{ with .Inserter -}}
+{{ range .Inserters }}
 
 // Insert inserts a new {{.Table}} table entity. All the fields of the 
 // {{.Type}} receiver are set, as well as status, created_at and updated_at. 
@@ -59,7 +55,7 @@ func (一 {{.Type}}) Insert(ctx context.Context, tx *sql.Tx, st shift.Status) (i
 {{end}}
 	return {{if .HasID}}一.ID{{else}}id{{end}}, nil
 }
-{{ end }}{{ end }}{{ range .Updaters }}
+{{end}}{{ range .Updaters }}
 // Update updates the status of a {{.Table}} table entity. All the fields of the
 // {{.Type}} receiver are updated, as well as status and updated_at. 
 // The entity id is returned on success or an error.
