@@ -7,6 +7,7 @@ import (
 	"github.com/luno/jettison/errors"
 	"github.com/luno/jettison/j"
 	"github.com/luno/reflex"
+	"github.com/luno/reflex/rsql"
 )
 
 // NewArcFSM returns a new ArcFSM builder.
@@ -70,24 +71,13 @@ type ArcFSM struct {
 }
 
 func (fsm *ArcFSM) Insert(ctx context.Context, dbc *sql.DB, st Status, inserter Inserter) (int64, error) {
-	var found bool
-	for _, tup := range fsm.inserts {
-		if tup.Status == st.ShiftStatus() && sameType(tup.Type, inserter) {
-			found = true
-			break
-		}
-	}
-	if !found {
-		return 0, errors.Wrap(ErrInvalidStateTransition, "invalid insert status and inserter", j.KV("status", st.ShiftStatus()))
-	}
-
 	tx, err := dbc.Begin()
 	if err != nil {
 		return 0, err
 	}
 	defer tx.Rollback()
 
-	id, notify, err := insertTx(ctx, tx, st, inserter, fsm.events, reflex.EventType(st), fsm.options)
+	id, notify, err := fsm.InsertTx(ctx, tx, st, inserter)
 	if err != nil {
 		return 0, err
 	}
@@ -96,10 +86,41 @@ func (fsm *ArcFSM) Insert(ctx context.Context, dbc *sql.DB, st Status, inserter 
 	return id, tx.Commit()
 }
 
+func (fsm *ArcFSM) InsertTx(ctx context.Context, tx *sql.Tx, st Status, inserter Inserter) (int64, rsql.NotifyFunc, error) {
+	var found bool
+	for _, tup := range fsm.inserts {
+		if tup.Status == st.ShiftStatus() && sameType(tup.Type, inserter) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return 0, nil, errors.Wrap(ErrInvalidStateTransition, "invalid insert status and inserter", j.KV("status", st.ShiftStatus()))
+	}
+
+	return insertTx(ctx, tx, st, inserter, fsm.events, reflex.EventType(st), fsm.options)
+}
+
 func (fsm *ArcFSM) Update(ctx context.Context, dbc *sql.DB, from, to Status, updater Updater) error {
+	tx, err := dbc.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	notify, err := fsm.UpdateTx(ctx, tx, from, to, updater)
+	if err != nil {
+		return err
+	}
+	defer notify()
+
+	return tx.Commit()
+}
+
+func (fsm *ArcFSM) UpdateTx(ctx context.Context, tx *sql.Tx, from, to Status, updater Updater) (rsql.NotifyFunc, error) {
 	tl, ok := fsm.updates[from.ShiftStatus()]
 	if !ok {
-		return errors.Wrap(ErrInvalidStateTransition, "invalid update from status", j.KV("status", from.ShiftStatus()))
+		return nil, errors.Wrap(ErrInvalidStateTransition, "invalid update from status", j.KV("status", from.ShiftStatus()))
 	}
 
 	var found bool
@@ -110,20 +131,8 @@ func (fsm *ArcFSM) Update(ctx context.Context, dbc *sql.DB, from, to Status, upd
 		}
 	}
 	if !found {
-		return errors.Wrap(ErrInvalidStateTransition, "invalid update to status and updater", j.KV("status", from.ShiftStatus()))
+		return nil, errors.Wrap(ErrInvalidStateTransition, "invalid update to status and updater", j.KV("status", from.ShiftStatus()))
 	}
 
-	tx, err := dbc.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	notify, err := updateTx(ctx, tx, from, to, updater, fsm.events, reflex.EventType(to), fsm.options)
-	if err != nil {
-		return err
-	}
-	defer notify()
-
-	return tx.Commit()
+	return updateTx(ctx, tx, from, to, updater, fsm.events, reflex.EventType(to), fsm.options)
 }
