@@ -123,9 +123,14 @@ func (fsm *FSM) Insert(ctx context.Context, dbc *sql.DB, inserter Inserter) (int
 	if err != nil {
 		return 0, err
 	}
-	defer notify()
 
-	return id, tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return 0, err
+	}
+
+	notify()
+	return id, nil
 }
 
 func (fsm *FSM) InsertTx(ctx context.Context, tx *sql.Tx, inserter Inserter) (int64, rsql.NotifyFunc, error) {
@@ -150,9 +155,14 @@ func (fsm *FSM) Update(ctx context.Context, dbc *sql.DB, from Status, to Status,
 	if err != nil {
 		return err
 	}
-	defer notify()
 
-	return tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	notify()
+	return nil
 }
 
 func (fsm *FSM) UpdateTx(ctx context.Context, tx *sql.Tx, from Status, to Status, updater Updater) (rsql.NotifyFunc, error) {
