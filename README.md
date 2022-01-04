@@ -10,11 +10,11 @@ Shift provides the SQL persistence layer for a simple "finite state machine" dom
 A Shift state machine is composed of an initial state followed by multiple subsequent states linked by allowed transitions, i.e., a rooted directed graph.
 
 ```
-              /------------\
-              V            |
-CREATED --> PENDING --> FAILED
-                    |                    
-                    L-> COMPLETED 
+               ┌───────────┐
+               ▽           │
+CREATED ──▷ PENDING ─┬─▷ FAILED
+                     │
+                     └─▷ COMPLETED
 
 ```
 
