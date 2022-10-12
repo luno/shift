@@ -2,9 +2,9 @@ package shift
 
 type optionCustom func(*options)
 
-// NewFSMWithStringPrimary returns a new FSM builder.
-func NewFSMWithStringPrimary(events eventInserterStr, opts ...optionCustom) initerStr {
-	fsm := FSMString{
+// NewGenericFSM returns a new FSM builder.
+func NewGenericFSM[T Primary](events eventInserterT[T], opts ...optionCustom) initerT[T] {
+	fsm := FSMT[T]{
 		states: make(map[int]status),
 		events: events,
 	}
@@ -13,15 +13,15 @@ func NewFSMWithStringPrimary(events eventInserterStr, opts ...optionCustom) init
 		opt(&fsm.options)
 	}
 
-	return initerStr(fsm)
+	return initerT[T](fsm)
 }
 
-type builderStr FSMString
+type builderT[T Primary] FSMT[T]
 
-type initerStr FSMString
+type initerT[T Primary] FSMT[T]
 
 // Insert returns an FSM builder with the provided insert status.
-func (c initerStr) Insert(st Status, inserter inserterStr, next ...Status) builderStr {
+func (c initerT[T]) Insert(st Status, inserter inserter[T], next ...Status) builderT[T] {
 	c.states[st.ShiftStatus()] = status{
 		st:     st,
 		req:    inserter,
@@ -30,11 +30,11 @@ func (c initerStr) Insert(st Status, inserter inserterStr, next ...Status) build
 		next:   toMap(next),
 	}
 	c.insertStatus = st
-	return builderStr(c)
+	return builderT[T](c)
 }
 
 // Update returns an FSM builder with the provided status update added.
-func (b builderStr) Update(st Status, updater updaterStr, next ...Status) builderStr {
+func (b builderT[T]) Update(st Status, updater updater[T], next ...Status) builderT[T] {
 	if _, has := b.states[st.ShiftStatus()]; has {
 		// Ok to panic since it is build time.
 		panic("state already added")
@@ -50,7 +50,7 @@ func (b builderStr) Update(st Status, updater updaterStr, next ...Status) builde
 }
 
 // Build returns the built FSM.
-func (b builderStr) Build() *FSMString {
-	fsm := FSMString(b)
+func (b builderT[T]) Build() *FSMT[T] {
+	fsm := FSMT[T](b)
 	return &fsm
 }

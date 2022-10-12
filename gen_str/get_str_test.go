@@ -45,7 +45,7 @@ const (
 )
 
 var events = rsql.NewEventsTable("events")
-var fsm = shift.NewFSMWithStringPrimary(events).
+var fsm = shift.NewGenericFSM[string](events).
 	Insert(StatusInit, insert{}, StatusUpdate).
 	Update(StatusUpdate, update{}, StatusComplete).
 	Update(StatusComplete, complete{}).
