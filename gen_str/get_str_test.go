@@ -11,9 +11,11 @@ import (
 )
 
 //go:generate shiftgen -inserter=insert -updaters=update,complete -table=users -out=gen_test.go -primary_type=string
+// Also support non-auto-incrementing int64 primary keys
+////go:generate shiftgen ... -primary_type=int64 -auto_increment=false
 
 type insert struct {
-	KSUID       string `shift:"ksuid,primary"`
+	KSUID       string `shift:"ksuid,primary"` // primary required if default of ID not used/wanted.
 	Name        string
 	DateOfBirth time.Time `shift:"dob"` // Override column name.
 }
