@@ -11,7 +11,7 @@ import (
 	"github.com/luno/shift"
 )
 
-//go:generate shiftgen -inserters=insert2 -updaters=move -table=users -out=gen_4_test.go
+//go:generate go run github.com/luno/shift/shiftgen -inserters=insert2 -updaters=move -table=users -out=gen_4_test.go
 
 type insert2 struct {
 	Name        string

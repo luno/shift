@@ -6,13 +6,15 @@
 // MetadataInserter or MetadataUpdater since it is orthogonal to inserting
 // and updating domain entity rows.
 //
-//  Usage:
-//    //go:generate shiftgen -table=model_table -inserter=InsertReq -updaters=UpdateReq,CompleteReq
+//	Usage:
+//	  //go:generate shiftgen -table=model_table -inserter=InsertReq -updaters=UpdateReq,CompleteReq
 package main
 
 import (
 	"bytes"
 	"flag"
+	"github.com/luno/jettison/errors"
+	"github.com/luno/jettison/j"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -30,7 +32,8 @@ import (
 
 // Tag is the shiftgen struct tag that should be used to override sql column names
 // for struct fields (the default is snake case of the field name).
-//   Ex `shift:"custom_col_name"`.
+//
+//	Ex `shift:"custom_col_name"`.
 const Tag = "shift"
 
 const tagPrefix = "`" + Tag + ":"
@@ -77,50 +80,87 @@ type Data struct {
 func main() {
 	flag.Parse()
 
+	ii, err := parseInserters()
+	if err != nil {
+		log.Fatal(err)
+	}
+	uu := parseUpdaters()
+
 	pwd, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
 	}
+	filePath := path.Join(pwd, *outFile)
 
-	ups := make(map[string]bool)
-	if strings.TrimSpace(*updaters) != "" {
-		for _, u := range strings.Split(*updaters, ",") {
-			ups[strings.TrimSpace(u)] = true
-		}
+	src, err := generateSrc(pwd, *table, ii, uu, *statusField, filePath)
+	if err != nil {
+		log.Fatal(err)
 	}
 
+	if err = os.WriteFile(filePath, src, 0644); err != nil {
+		log.Fatal(errors.Wrap(err, "Error writing file"))
+	}
+}
+
+func parseInserters() ([]string, error) {
 	if *inserter != "" && *inserters != "" {
-		log.Fatal("Either define inserter or inserters, not both")
+		return nil, errors.New("Either define inserter or inserters, not both")
 	}
 
-	ins := make(map[string]bool)
+	var ii []string
 	if *inserter != "" {
-		ins[*inserter] = true
+		ii = append(ii, *inserter)
 	} else if strings.TrimSpace(*inserters) != "" {
 		for _, i := range strings.Split(*inserters, ",") {
-			ins[strings.TrimSpace(i)] = true
+			ii = append(ii, strings.TrimSpace(i))
 		}
 	}
+	return ii, nil
+}
 
-	if len(ups) == 0 && len(ins) == 0 {
-		log.Fatal("No updaters or inserter specified")
+func parseUpdaters() []string {
+	var uu []string
+	if strings.TrimSpace(*updaters) != "" {
+		for _, u := range strings.Split(*updaters, ",") {
+			uu = append(uu, strings.TrimSpace(u))
+		}
 	}
-	if *table == "" {
-		log.Fatal("No table specified")
+	return uu
+}
+
+func generateSrc(pkgPath, table string, inserters, updaters []string, statusField, filePath string) ([]byte, error) {
+	if table == "" {
+		return nil, errors.New("No table specified")
+	}
+	if len(inserters) == 0 && len(updaters) == 0 {
+		return nil, errors.New("No inserter or updaters specified")
 	}
 
 	fs := token.NewFileSet()
-	asts, err := parser.ParseDir(fs, pwd, nil, 0)
+	asts, err := parser.ParseDir(fs, pkgPath, nil, 0)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	data := Data{
 		GenSource: os.Getenv("GOFILE") + ":" + os.Getenv("GOLINE"),
 	}
 
+	ins := make(map[string]bool, len(inserters))
+	for _, i := range inserters {
+		ins[i] = true
+	}
+	ups := make(map[string]bool, len(updaters))
+	for _, u := range updaters {
+		ups[u] = true
+	}
 	for p, a := range asts {
+		var inspectErr error
 		ast.Inspect(a, func(n ast.Node) bool {
+			if inspectErr != nil {
+				return false
+			}
+
 			t, ok := n.(*ast.TypeSpec)
 			if !ok {
 				return true
@@ -140,21 +180,21 @@ func main() {
 			}
 
 			if data.Package != "" && data.Package != p {
-				log.Fatal("Struct types defined in separate packages")
+				inspectErr = errors.New("Struct types defined in separate packages")
 			}
 			data.Package = p
 
 			s, ok := t.Type.(*ast.StructType)
 			if !ok {
-				log.Fatalf("Found %s, but it is not a struct type", typ)
+				inspectErr = errors.New("Inserter/updater must be a struct type", j.MKV{"name": typ})
 			}
-			st := Struct{Type: typ, Table: *table, StatusField: *statusField}
+			st := Struct{Type: typ, Table: table, StatusField: statusField}
 			for _, f := range s.Fields.List {
 				if len(f.Names) == 0 {
-					log.Fatalf("Found %s, but has anonymous field (maybe shift.Reflect)", typ)
+					inspectErr = errors.New("Inserter/updater, but has anonymous field (maybe shift.Reflect)", j.MKV{"name": typ})
 				}
 				if len(f.Names) != 1 {
-					log.Fatalf("Found %s, but one field multiple names: %v", typ, f.Names)
+					inspectErr = errors.New("Inserter/updaters, but one field multiple names: %v", j.MKV{"name": typ, "field_names": f.Names})
 				}
 				name := f.Names[0].Name
 				if name == "ID" {
@@ -184,7 +224,7 @@ func main() {
 			}
 			if isU {
 				if !st.HasID {
-					log.Fatalf("Updater must contain ID field: %s", typ)
+					inspectErr = errors.New("Updater must contain ID field", j.MKV{"field": typ})
 				}
 				data.Updaters = append(data.Updaters, st)
 				ups[typ] = false
@@ -195,22 +235,27 @@ func main() {
 
 			return true
 		})
-	}
-
-	for st, missing := range ups {
-		if missing {
-			log.Fatalf("Couldn't find updater: %v", st)
-		}
-	}
-	for st, missing := range ins {
-		if missing {
-			log.Fatalf("Couldn't find inserter: %v", st)
+		if inspectErr != nil {
+			return nil, inspectErr
 		}
 	}
 
-	if err := writeOutput(data, pwd); err != nil {
-		log.Fatalf("Error writing file: %v", err)
+	for in, missing := range ins {
+		if missing {
+			return nil, errors.New("Couldn't find inserter", j.MKV{"name": in})
+		}
 	}
+	for up, missing := range ups {
+		if missing {
+			return nil, errors.New("Couldn't find updater", j.MKV{"name": up})
+		}
+	}
+
+	var out bytes.Buffer
+	if err = execTpl(&out, tpl, data); err != nil {
+		return nil, errors.Wrap(err, "Failed executing template")
+	}
+	return imports.Process(filePath, out.Bytes(), nil)
 }
 
 func execTpl(out io.Writer, tpl string, data Data) error {
@@ -228,24 +273,6 @@ func execTpl(out io.Writer, tpl string, data Data) error {
 
 func quoteCol(colName string) string {
 	return *quoteChar + colName + *quoteChar
-}
-
-func writeOutput(data Data, pwd string) error {
-	var out bytes.Buffer
-
-	err := execTpl(&out, tpl, data)
-	if err != nil {
-		return err
-	}
-
-	outname := path.Join(pwd, *outFile)
-
-	b, err := imports.Process(outname, out.Bytes(), nil)
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(outname, b, 0644)
 }
 
 var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")

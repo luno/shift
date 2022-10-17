@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//go:generate shiftgen -inserter=insert -updaters=update,complete -table=users -out=gen_1_test.go
+//go:generate go run github.com/luno/shift/shiftgen -inserter=insert -updaters=update,complete -table=users -out=gen_1_test.go
 
 type insert struct {
 	Name        string
@@ -159,7 +159,7 @@ func TestWithValidation(t *testing.T) {
 	jtest.Require(t, errUpdateInvalid, err)
 }
 
-//go:generate shiftgen -inserter=i_t -updaters=u_t -table=tests -out=gen_3_test.go
+//go:generate go run github.com/luno/shift/shiftgen -inserter=i_t -updaters=u_t -table=tests -out=gen_3_test.go
 
 type i_t struct {
 	I1        int64
