@@ -52,7 +52,7 @@ Some properties:
 - The initial state's struct may therefore not contain an ID field. 
 - Entering a subsequent states always updates an existing row.
 - Subsequent states' structs must therefore contain an ID field. 
-- Only `int64` ID fields are supported.
+- `int64` and `string` ID fields are supported.
 - Created and updated times are guaranteed to be reliable:
   - By default, `time.Now()` is used to set the timestamp columns.
   - If specified in the inserter or updater, shift will use the provided time. This can be useful for testing.
@@ -68,7 +68,8 @@ Differences of ArcFSM from FSM:
 
 The above state machine is defined by:
 ```
-fsm := shift.NewFSM()
+events := rsql.NewEventsTableInt("events")
+fsm := shift.NewFSM(events)
   Insert(CREATED, create{}, PENDING).
   Update(PENDING, pending{}, COMPLETED, FAILED).
   Update(FAILED, failed{}, PENDING).
