@@ -48,6 +48,8 @@ const (
 	StatusComplete TestStatus = 3
 )
 
+const usersTable = "users"
+
 var events = rsql.NewEventsTableInt("events")
 var fsm = shift.NewFSM(events).
 	Insert(StatusInit, insert{}, StatusUpdate).
@@ -73,28 +75,28 @@ func TestBasic(t *testing.T) {
 	jtest.RequireNil(t, err)
 	require.Equal(t, int64(1), id)
 
-	assertUser(t, dbc, events.ToStream(dbc), id, "insertMe", t0, Currency{}, 1)
+	assertUser(t, dbc, events.ToStream(dbc), usersTable, id, "insertMe", t0, Currency{}, 1)
 
 	// Update model
 	err = fsm.Update(ctx, dbc, StatusInit, StatusUpdate, update{ID: id, Name: "updateMe", Amount: amount})
 	jtest.RequireNil(t, err)
 
-	assertUser(t, dbc, events.ToStream(dbc), id, "updateMe", t0, amount, 1, 2)
+	assertUser(t, dbc, events.ToStream(dbc), usersTable, id, "updateMe", t0, amount, 1, 2)
 
 	// Complete model
 	err = fsm.Update(ctx, dbc, StatusUpdate, StatusComplete, complete{ID: id})
 	jtest.RequireNil(t, err)
 
-	assertUser(t, dbc, events.ToStream(dbc), id, "updateMe", t0, amount, 1, 2, 3)
+	assertUser(t, dbc, events.ToStream(dbc), usersTable, id, "updateMe", t0, amount, 1, 2, 3)
 }
 
-func assertUser(t *testing.T, dbc *sql.DB, stream reflex.StreamFunc, id int64,
-	exName string, exDOB time.Time, exAmount Currency, exEvents ...TestStatus) {
+func assertUser(t *testing.T, dbc *sql.DB, stream reflex.StreamFunc, table string,
+	id any, exName string, exDOB time.Time, exAmount Currency, exEvents ...TestStatus) {
 	var name sql.NullString
 	var amount Currency
 	var dob time.Time
 	err := dbc.QueryRow("select name, dob, amount "+
-		"from users where id=?", id).Scan(&name, &dob, &amount)
+		"from "+table+" where id=?", id).Scan(&name, &dob, &amount)
 	jtest.RequireNil(t, err)
 	require.Equal(t, exName, name.String)
 	require.Equal(t, exDOB.UTC(), dob.UTC())
@@ -109,6 +111,60 @@ func assertUser(t *testing.T, dbc *sql.DB, stream reflex.StreamFunc, id int64,
 		jtest.RequireNil(t, err)
 		require.Equal(t, int(exE), e.Type.ReflexType())
 	}
+}
+
+//go:generate go run github.com/luno/shift/shiftgen -inserter=insertStr -updaters=updateStr,completeStr -table=usersStr -out=gen_string_test.go
+
+type insertStr struct {
+	ID          string
+	Name        string
+	DateOfBirth time.Time `shift:"dob"` // Override column name.
+}
+
+type updateStr struct {
+	ID     string
+	Name   string
+	Amount Currency
+}
+
+type completeStr struct {
+	ID string
+}
+
+const usersStrTable = "usersStr"
+
+var eventsStr = rsql.NewEventsTable("eventsStr")
+var fsmStr = shift.NewGenFSM[string](eventsStr).
+	Insert(StatusInit, insertStr{}, StatusUpdate).
+	Update(StatusUpdate, updateStr{}, StatusComplete).
+	Update(StatusComplete, completeStr{}).
+	Build()
+
+func TestBasic_StringFSM(t *testing.T) {
+	dbc := setup(t)
+
+	t0 := time.Now().Truncate(time.Second)
+	amount := Currency{Valid: true, Amount: 99}
+	ctx := context.Background()
+
+	// Init model
+	id, err := fsmStr.Insert(ctx, dbc, insertStr{ID: "abcdef123456", Name: "insertMe", DateOfBirth: t0})
+	jtest.RequireNil(t, err)
+	require.Equal(t, "abcdef123456", id)
+
+	assertUser(t, dbc, eventsStr.ToStream(dbc), usersStrTable, id, "insertMe", t0, Currency{}, 1)
+
+	// Update model
+	err = fsmStr.Update(ctx, dbc, StatusInit, StatusUpdate, updateStr{ID: id, Name: "updateMe", Amount: amount})
+	jtest.RequireNil(t, err)
+
+	assertUser(t, dbc, eventsStr.ToStream(dbc), usersStrTable, id, "updateMe", t0, amount, 1, 2)
+
+	// Complete model
+	err = fsmStr.Update(ctx, dbc, StatusUpdate, StatusComplete, completeStr{ID: id})
+	jtest.RequireNil(t, err)
+
+	assertUser(t, dbc, eventsStr.ToStream(dbc), usersStrTable, id, "updateMe", t0, amount, 1, 2, 3)
 }
 
 func (ii i) Validate(ctx context.Context, tx *sql.Tx, id int64, status shift.Status) error {

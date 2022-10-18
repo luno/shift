@@ -38,6 +38,10 @@ const Tag = "shift"
 
 const tagPrefix = "`" + Tag + ":"
 
+// idFieldName is the name of the field in the Go struct used for the table's ID
+// TODO: Support custom ID field name.
+const idFieldName = "ID"
+
 var (
 	updaters = flag.String("updaters", "",
 		"The struct types (comma seperated) to generate Update methods for")
@@ -55,6 +59,8 @@ var (
 		"Character to use when quoting column names")
 )
 
+var ErrIDTypeMismatch = errors.New("Inserters and updaters' ID fields should have matching types")
+
 type Field struct {
 	Name string
 	Col  string
@@ -68,6 +74,18 @@ type Struct struct {
 	CustomCreatedAt bool
 	CustomUpdatedAt bool
 	HasID           bool
+	// IDType is the type of the ID field
+	IDType string
+}
+
+func (s Struct) IDZeroValue() string {
+	switch s.IDType {
+	case "string":
+		return `""`
+	case "int64":
+		return `0`
+	}
+	return ``
 }
 
 type Data struct {
@@ -188,7 +206,7 @@ func generateSrc(pkgPath, table string, inserters, updaters []string, statusFiel
 			if !ok {
 				inspectErr = errors.New("Inserter/updater must be a struct type", j.MKV{"name": typ})
 			}
-			st := Struct{Type: typ, Table: table, StatusField: statusField}
+			st := Struct{Type: typ, Table: table, StatusField: statusField, IDType: "int64"}
 			for _, f := range s.Fields.List {
 				if len(f.Names) == 0 {
 					inspectErr = errors.New("Inserter/updater, but has anonymous field (maybe shift.Reflect)", j.MKV{"name": typ})
@@ -197,8 +215,13 @@ func generateSrc(pkgPath, table string, inserters, updaters []string, statusFiel
 					inspectErr = errors.New("Inserter/updaters, but one field multiple names: %v", j.MKV{"name": typ, "field_names": f.Names})
 				}
 				name := f.Names[0].Name
-				if name == "ID" {
+				if name == idFieldName {
 					st.HasID = true
+					if ti, ok := f.Type.(*ast.Ident); !ok {
+						inspectErr = errors.New("ID field should be of type int64 or string")
+					} else {
+						st.IDType = ti.Name
+					}
 					// Skip ID fields for updaters (since they are hardcoded)
 					continue
 				}
@@ -251,6 +274,10 @@ func generateSrc(pkgPath, table string, inserters, updaters []string, statusFiel
 		}
 	}
 
+	if err = ensureMatchingIDType(data.Inserters, data.Updaters); err != nil {
+		return nil, err
+	}
+
 	var out bytes.Buffer
 	if err = execTpl(&out, tpl, data); err != nil {
 		return nil, errors.Wrap(err, "Failed executing template")
@@ -273,6 +300,20 @@ func execTpl(out io.Writer, tpl string, data Data) error {
 
 func quoteCol(colName string) string {
 	return *quoteChar + colName + *quoteChar
+}
+
+// ensureMatchingIDType returns an error if any of the inserters or updates have
+// a different type for their ID.
+func ensureMatchingIDType(inserters, updaters []Struct) error {
+	var idType string
+	for _, s := range append(inserters, updaters...) {
+		if idType == "" {
+			idType = s.IDType
+		} else if idType != s.IDType {
+			return ErrIDTypeMismatch
+		}
+	}
+	return nil
 }
 
 var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")

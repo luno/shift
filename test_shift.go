@@ -13,7 +13,7 @@ import (
 	"github.com/luno/jettison/errors"
 )
 
-// TODO(corver): Implement TestArcFSM
+// TODO: Implement TestArcFSM
 
 // TestFSM tests the provided FSM instance by driving it through all possible
 // state transitions using fuzzed data. It ensures all states are reachable and
@@ -62,8 +62,8 @@ func TestFSM(_ testing.TB, dbc *sql.DB, fsm *FSM) error {
 	return nil
 }
 
-func randomUpdate(req interface{}, id int64) (u Updater, err error) {
-	u, ok := req.(Updater)
+func randomUpdate(req interface{}, id int64) (u updater[int64], err error) {
+	u, ok := req.(updater[int64])
 	if !ok {
 		return nil, errors.New("req not of tupe Updater")
 	}
@@ -77,11 +77,11 @@ func randomUpdate(req interface{}, id int64) (u Updater, err error) {
 			f.Set(randVal(t))
 		}
 	}
-	return s.Interface().(Updater), nil
+	return s.Interface().(updater[int64]), nil
 }
 
-func randomInsert(req interface{}) (Inserter, error) {
-	_, ok := req.(Inserter)
+func randomInsert(req interface{}) (inserter[int64], error) {
+	_, ok := req.(inserter[int64])
 	if !ok {
 		return nil, errors.New("req not of type Inserter")
 	}
@@ -91,7 +91,7 @@ func randomInsert(req interface{}) (Inserter, error) {
 		f := s.Field(i)
 		f.Set(randVal(f.Type()))
 	}
-	return s.Interface().(Inserter), nil
+	return s.Interface().(inserter[int64]), nil
 }
 
 func buildPaths(states map[int]status, from Status) [][]status {

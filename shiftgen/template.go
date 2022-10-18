@@ -19,7 +19,7 @@ import (
 // Insert inserts a new {{.Table}} table entity. All the fields of the 
 // {{.Type}} receiver are set, as well as status, created_at and updated_at. 
 // The newly created entity id is returned on success or an error.
-func (一 {{.Type}}) Insert(ctx context.Context, tx *sql.Tx, st shift.Status) (int64, error) {
+func (一 {{.Type}}) Insert(ctx context.Context, tx *sql.Tx, st shift.Status) ({{.IDType}}, error) {
 	var (
 		q    strings.Builder
 		args []interface{}
@@ -27,17 +27,17 @@ func (一 {{.Type}}) Insert(ctx context.Context, tx *sql.Tx, st shift.Status) (i
 
 	{{if .CustomCreatedAt -}}
 	if 一.CreatedAt.IsZero() {
-		return 0, errors.New("created_at is required")
+		return {{.IDZeroValue}}, errors.New("created_at is required")
 	}
 	{{end -}}
 	{{if .CustomUpdatedAt}}
 	if 一.UpdatedAt.IsZero() {
-		return 0, errors.New("updated_at is required")
+		return {{.IDZeroValue}}, errors.New("updated_at is required")
 	}
 
 	{{end -}}
 
-	q.WriteString("insert into {{.Table}} set {{if .HasID}}id=?, {{end}}{{col .StatusField}}=?{{if not .CustomCreatedAt}}, {{col "created_at"}}=?{{end}}{{if not .CustomCreatedAt}}, {{col "updated_at"}}=?{{end}} ")
+	q.WriteString("insert into {{.Table}} set {{if .HasID}}` + "`id`=?" + `, {{end}}{{col .StatusField}}=?{{if not .CustomCreatedAt}}, {{col "created_at"}}=?{{end}}{{if not .CustomCreatedAt}}, {{col "updated_at"}}=?{{end}} ")
 	args = append(args, {{if .HasID}}一.ID, {{end}}st.ShiftStatus(){{if not .CustomCreatedAt}}, time.Now(){{end}}{{if not .CustomCreatedAt}}, time.Now(){{end}})
 {{range .Fields}}
 	q.WriteString(", {{col .Col}}=?")
@@ -45,7 +45,7 @@ func (一 {{.Type}}) Insert(ctx context.Context, tx *sql.Tx, st shift.Status) (i
 {{end}}
 	{{if .HasID}}_{{else}}res{{end}}, err := tx.ExecContext(ctx, q.String(), args...)
 	if err != nil {
-		return 0, err
+		return {{.IDZeroValue}}, err
 	}
 {{if not .HasID}}
 	id, err := res.LastInsertId()
@@ -60,7 +60,7 @@ func (一 {{.Type}}) Insert(ctx context.Context, tx *sql.Tx, st shift.Status) (i
 // {{.Type}} receiver are updated, as well as status and updated_at. 
 // The entity id is returned on success or an error.
 func (一 {{.Type}}) Update(ctx context.Context, tx *sql.Tx, from shift.Status, 
-	to shift.Status) (int64, error) {
+	to shift.Status) ({{.IDType}}, error) {
 	var (
 		q    strings.Builder
 		args []interface{}
@@ -68,7 +68,7 @@ func (一 {{.Type}}) Update(ctx context.Context, tx *sql.Tx, from shift.Status,
 
 	{{if .CustomUpdatedAt -}}
 	if 一.UpdatedAt.IsZero() {
-		return 0, errors.New("updated_at is required")
+		return {{.IDZeroValue}}, errors.New("updated_at is required")
 	}
 
 	{{end -}}
@@ -84,14 +84,14 @@ func (一 {{.Type}}) Update(ctx context.Context, tx *sql.Tx, from shift.Status,
 
 	res, err := tx.ExecContext(ctx, q.String(), args...)
 	if err != nil {
-		return 0, err
+		return {{.IDZeroValue}}, err
 	}
 	n, err := res.RowsAffected()
 	if err != nil {
-		return 0, err
+		return {{.IDZeroValue}}, err
 	}
 	if n != 1 {
-		return 0, errors.Wrap(shift.ErrRowCount, "{{.Type}}", j.KV("count", n))
+		return {{.IDZeroValue}}, errors.Wrap(shift.ErrRowCount, "{{.Type}}", j.KV("count", n))
 	}
 
 	return 一.ID, nil

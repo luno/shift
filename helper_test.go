@@ -34,6 +34,27 @@ var schemas = []string{`
 
     primary key (id)
   );`, `
+  create temporary table usersStr (
+    id     varchar(255) not null,
+    name   varchar(255) not null,
+    dob    datetime     not null,
+    amount varchar(255),
+
+    status     tinyint  not null,
+    created_at datetime not null,
+    updated_at datetime not null,
+
+    primary key (id)
+  );`, `
+  create temporary table eventsStr (
+    id         bigint       not null auto_increment,
+    foreign_id varchar(255) not null,
+    timestamp  datetime     not null,
+    type       tinyint      not null,
+    metadata   blob,
+
+    primary key (id)
+  );`, `
   create temporary table tests (
     id bigint not null auto_increment,
     i1 bigint not null, 
@@ -44,15 +65,15 @@ var schemas = []string{`
     u3 datetime,
     u4 varchar(255),
     u5 binary(64),
-    
+
     status     tinyint not null,
     created_at datetime not null,
     updated_at datetime not null,
-    
+
     primary key (id)
   );`}
 
-// TODO(corver): Refactor this to use sqllite.
+// TODO: Refactor this to use sqllite.
 var dbTestURI = flag.String("db_test_base", "root@unix("+getSocketFile()+")/test?", "Test database uri")
 
 func getSocketFile() string {

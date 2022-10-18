@@ -53,12 +53,12 @@ func TestArcFSM(t *testing.T) {
 	err = afsm.Update(ctx, dbc, StatusUpdate, StatusInit, move{ID: id1})
 	jtest.RequireNil(t, err)
 
-	assertUser(t, dbc, events.ToStream(dbc), id1, "insert", t0, Currency{}, 1, 2, 1)
+	assertUser(t, dbc, events.ToStream(dbc), usersTable, id1, "insert", t0, Currency{}, 1, 2, 1)
 
 	// Init another model
 	id2, err := afsm.Insert(ctx, dbc, StatusInit, insert2{Name: "insert2", DateOfBirth: t0, Amount: amount})
 	jtest.RequireNil(t, err)
 	require.Equal(t, int64(2), id2)
 
-	assertUser(t, dbc, events.ToStream(dbc), id2, "insert2", t0, amount, 1)
+	assertUser(t, dbc, events.ToStream(dbc), usersTable, id2, "insert2", t0, amount, 1)
 }

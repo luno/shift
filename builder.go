@@ -7,7 +7,7 @@ type options struct {
 	withValidation bool
 }
 
-// WithMetadata provides an option to enable event metadata with a FSM.
+// WithMetadata provides an option to enable event metadata with an FSM.
 func WithMetadata() option {
 	return func(o *options) {
 		o.withMetadata = true
@@ -21,9 +21,16 @@ func WithValidation() option {
 	}
 }
 
-// NewFSM returns a new FSM builder.
-func NewFSM(events eventInserter, opts ...option) initer {
-	fsm := FSM{
+// NewFSM returns a new FSM initer that supports a user table with an int64
+// primary key.
+func NewFSM(events eventInserter[int64], opts ...option) initer[int64] {
+	return NewGenFSM[int64](events, opts...)
+}
+
+// NewGenFSM returns a new FSM initer. The type T should match the type of the
+// user table's primary key.
+func NewGenFSM[T primary](events eventInserter[T], opts ...option) initer[T] {
+	fsm := GenFSM[T]{
 		states: make(map[int]status),
 		events: events,
 	}
@@ -32,15 +39,14 @@ func NewFSM(events eventInserter, opts ...option) initer {
 		opt(&fsm.options)
 	}
 
-	return initer(builder(fsm))
+	return initer[T](fsm)
 }
 
-type builder FSM
+// initer supports adding an inserter to the FSM.
+type initer[T primary] GenFSM[T]
 
-type initer builder
-
-// Insert returns a FSM builder with the provided insert status.
-func (c initer) Insert(st Status, inserter Inserter, next ...Status) builder {
+// Insert returns an FSM builder with the provided insert status.
+func (c initer[T]) Insert(st Status, inserter inserter[T], next ...Status) builder[T] {
 	c.states[st.ShiftStatus()] = status{
 		st:     st,
 		req:    inserter,
@@ -49,11 +55,14 @@ func (c initer) Insert(st Status, inserter Inserter, next ...Status) builder {
 		next:   toMap(next),
 	}
 	c.insertStatus = st
-	return builder(c)
+	return builder[T](c)
 }
 
-// Update returns a FSM builder with the provided status update added.
-func (b builder) Update(st Status, updater Updater, next ...Status) builder {
+// builder supports adding an updater to the FSM.
+type builder[T primary] GenFSM[T]
+
+// Update returns an FSM builder with the provided status update added.
+func (b builder[T]) Update(st Status, updater updater[T], next ...Status) builder[T] {
 	if _, has := b.states[st.ShiftStatus()]; has {
 		// Ok to panic since it is build time.
 		panic("state already added")
@@ -69,8 +78,8 @@ func (b builder) Update(st Status, updater Updater, next ...Status) builder {
 }
 
 // Build returns the built FSM.
-func (b builder) Build() *FSM {
-	fsm := FSM(b)
+func (b builder[T]) Build() *GenFSM[T] {
+	fsm := GenFSM[T](b)
 	return &fsm
 }
 
