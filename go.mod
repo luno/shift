@@ -7,7 +7,7 @@ require (
 	github.com/luno/reflex v0.0.0-20200720115201-e4d5ab0c6ea3
 	github.com/sebdah/goldie/v2 v2.5.3
 	github.com/stretchr/testify v1.6.0
-	golang.org/x/tools v0.1.5
+	golang.org/x/tools v0.1.12
 )
 
 require (
@@ -28,10 +28,10 @@ require (
 	github.com/prometheus/procfs v0.0.11 // indirect
 	github.com/sergi/go-diff v1.0.0 // indirect
 	golang.org/x/exp/errors v0.0.0-20200331195152-e8c3332aa8e5 // indirect
-	golang.org/x/mod v0.4.2 // indirect
-	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4 // indirect
-	golang.org/x/sys v0.0.0-20210510120138-977fb7262007 // indirect
-	golang.org/x/text v0.3.3 // indirect
+	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
+	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
+	golang.org/x/text v0.3.8 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/appengine v1.6.1 // indirect
 	google.golang.org/genproto v0.0.0-20200424135956-bca184e23272 // indirect
