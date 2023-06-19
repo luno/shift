@@ -3,6 +3,7 @@ package shift_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
 	"time"
 
@@ -11,8 +12,9 @@ import (
 	"github.com/luno/jettison/jtest"
 	"github.com/luno/reflex"
 	"github.com/luno/reflex/rsql"
-	"github.com/luno/shift"
 	"github.com/stretchr/testify/require"
+
+	"github.com/luno/shift"
 )
 
 //go:generate go run github.com/luno/shift/shiftgen -inserter=insert -updaters=update,complete -table=users -out=gen_1_test.go
@@ -50,12 +52,14 @@ const (
 
 const usersTable = "users"
 
-var events = rsql.NewEventsTableInt("events")
-var fsm = shift.NewFSM(events).
-	Insert(StatusInit, insert{}, StatusUpdate).
-	Update(StatusUpdate, update{}, StatusComplete).
-	Update(StatusComplete, complete{}).
-	Build()
+var (
+	events = rsql.NewEventsTableInt("events")
+	fsm    = shift.NewFSM(events).
+		Insert(StatusInit, insert{}, StatusUpdate).
+		Update(StatusUpdate, update{}, StatusComplete).
+		Update(StatusComplete, complete{}).
+		Build()
+)
 
 func TestAboveFSM(t *testing.T) {
 	dbc := setup(t)
@@ -91,7 +95,8 @@ func TestBasic(t *testing.T) {
 }
 
 func assertUser(t *testing.T, dbc *sql.DB, stream reflex.StreamFunc, table string,
-	id any, exName string, exDOB time.Time, exAmount Currency, exEvents ...TestStatus) {
+	id any, exName string, exDOB time.Time, exAmount Currency, exEvents ...TestStatus,
+) {
 	var name sql.NullString
 	var amount Currency
 	var dob time.Time
@@ -133,12 +138,14 @@ type completeStr struct {
 
 const usersStrTable = "usersStr"
 
-var eventsStr = rsql.NewEventsTable("eventsStr")
-var fsmStr = shift.NewGenFSM[string](eventsStr).
-	Insert(StatusInit, insertStr{}, StatusUpdate).
-	Update(StatusUpdate, updateStr{}, StatusComplete).
-	Update(StatusComplete, completeStr{}).
-	Build()
+var (
+	eventsStr = rsql.NewEventsTable("eventsStr")
+	fsmStr    = shift.NewGenFSM[string](eventsStr).
+			Insert(StatusInit, insertStr{}, StatusUpdate).
+			Update(StatusUpdate, updateStr{}, StatusComplete).
+			Update(StatusComplete, completeStr{}).
+			Build()
+)
 
 func TestBasic_StringFSM(t *testing.T) {
 	dbc := setup(t)
@@ -266,4 +273,57 @@ func TestWithTimestamps(t *testing.T) {
 	// Update from 1 -> 2 is ok
 	err = fsm.Update(ctx, dbc, s(1), s(2), u_t{ID: id, UpdatedAt: t0})
 	jtest.RequireNil(t, err)
+}
+
+func TestGenFSM_Update(t *testing.T) {
+	dbc := setup(t)
+
+	t0 := time.Now().Truncate(time.Second)
+	amount := Currency{Valid: true, Amount: 99}
+	ctx := context.Background()
+
+	// Init model
+	id, err := fsm.Insert(ctx, dbc, insert{Name: "insertMe", DateOfBirth: t0})
+	jtest.RequireNil(t, err)
+	require.Equal(t, int64(1), id)
+
+	assertUser(t, dbc, events.ToStream(dbc), usersTable, id, "insertMe", t0, Currency{}, 1)
+
+	var unknownShiftStatus TestStatus = 999
+	tests := []struct {
+		name        string
+		from        shift.Status
+		to          shift.Status
+		expectedErr error
+	}{
+		{
+			name: "Valid",
+			from: StatusInit,
+			to:   StatusUpdate,
+		},
+		{
+			name:        "Invalid State Transition",
+			from:        StatusComplete,
+			to:          StatusUpdate,
+			expectedErr: shift.ErrInvalidStateTransition,
+		},
+		{
+			name:        "Unknown 'from' status",
+			from:        unknownShiftStatus,
+			to:          StatusUpdate,
+			expectedErr: errors.Wrap(shift.ErrUnknownStatus, "unknown 'from' status", j.MKV{"from ": fmt.Sprintf("%T", unknownShiftStatus), "to": fmt.Sprintf("%T", StatusUpdate)}),
+		},
+		{
+			name:        "Unknown 'to' status",
+			from:        StatusUpdate,
+			to:          unknownShiftStatus,
+			expectedErr: errors.Wrap(shift.ErrUnknownStatus, "unknown 'to' status", j.MKV{"from ": fmt.Sprintf("%T", StatusUpdate), "to": fmt.Sprintf("%T", unknownShiftStatus)}),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := fsm.Update(ctx, dbc, tt.from, tt.to, update{ID: id, Name: "updateMe", Amount: amount})
+			jtest.Assert(t, tt.expectedErr, err)
+		})
+	}
 }

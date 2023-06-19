@@ -15,9 +15,11 @@ package shift
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"reflect"
 
 	"github.com/luno/jettison/errors"
+	"github.com/luno/jettison/j"
 	"github.com/luno/reflex"
 	"github.com/luno/reflex/rsql"
 )
@@ -177,24 +179,24 @@ func (fsm *GenFSM[T]) Update(ctx context.Context, dbc *sql.DB, from Status, to S
 func (fsm *GenFSM[T]) UpdateTx(ctx context.Context, tx *sql.Tx, from Status, to Status, updater updater[T]) (rsql.NotifyFunc, error) {
 	t, ok := fsm.states[to.ShiftStatus()]
 	if !ok {
-		return nil, errors.Wrap(ErrUnknownStatus, "unknown to status")
+		return nil, errors.Wrap(ErrUnknownStatus, "unknown 'to' status", j.MKV{"from": fmt.Sprintf("%T", from), "to": fmt.Sprintf("%T", to)})
 	}
 	if !sameType(t.req, updater) {
 		return nil, errors.Wrap(ErrInvalidType, "updater can't be used for this transition")
 	}
 	f, ok := fsm.states[from.ShiftStatus()]
 	if !ok {
-		return nil, errors.Wrap(ErrUnknownStatus, "unknown from status")
+		return nil, errors.Wrap(ErrUnknownStatus, "unknown 'from' status", j.MKV{"from": fmt.Sprintf("%T", from), "to": fmt.Sprintf("%T", to)})
 	} else if !f.next[to] {
-		return nil, errors.Wrap(ErrInvalidStateTransition, "")
+		return nil, errors.Wrap(ErrInvalidStateTransition, "", j.MKV{"from": fmt.Sprintf("%T", from), "to": fmt.Sprintf("%T", to)})
 	}
 
 	return updateTx(ctx, tx, from, to, updater, fsm.events, t.t, fsm.options)
 }
 
 func insertTx[T primary](ctx context.Context, tx *sql.Tx, st Status, inserter inserter[T],
-	events eventInserter[T], eventType reflex.EventType, opts options) (T, rsql.NotifyFunc, error) {
-
+	events eventInserter[T], eventType reflex.EventType, opts options,
+) (T, rsql.NotifyFunc, error) {
 	var zeroT T
 
 	id, err := inserter.Insert(ctx, tx, st)
@@ -237,8 +239,8 @@ func insertTx[T primary](ctx context.Context, tx *sql.Tx, st Status, inserter in
 }
 
 func updateTx[T primary](ctx context.Context, tx *sql.Tx, from Status, to Status, updater updater[T],
-	events eventInserter[T], eventType reflex.EventType, opts options) (rsql.NotifyFunc, error) {
-
+	events eventInserter[T], eventType reflex.EventType, opts options,
+) (rsql.NotifyFunc, error) {
 	id, err := updater.Update(ctx, tx, from, to)
 	if err != nil {
 		return nil, err
