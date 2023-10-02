@@ -145,7 +145,7 @@ func randVal(t reflect.Type) reflect.Value {
 	case boolType:
 		v = rand.Float64() < 0.5
 	case stringType:
-		v = hex.EncodeToString(randBytes(rand.Intn(10)))
+		v = hex.EncodeToString(randBytes(rand.Intn(5) + 5))
 	case nullTimeType:
 		v = sql.NullTime{
 			Valid: rand.Float64() < 0.5,
@@ -154,7 +154,7 @@ func randVal(t reflect.Type) reflect.Value {
 	case nullStringType:
 		v = sql.NullString{
 			Valid:  rand.Float64() < 0.5,
-			String: hex.EncodeToString(randBytes(rand.Intn(10))),
+			String: hex.EncodeToString(randBytes(rand.Intn(5) + 5)),
 		}
 	default:
 		return reflect.Indirect(reflect.New(t))
