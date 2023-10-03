@@ -53,7 +53,7 @@ const (
 const usersTable = "users"
 
 var (
-	events = rsql.NewEventsTableInt("events")
+	events = rsql.NewEventsTableInt("events", rsql.WithoutEventsCache())
 	fsm    = shift.NewFSM(events).
 		Insert(StatusInit, insert{}, StatusUpdate).
 		Update(StatusUpdate, update{}, StatusComplete).
