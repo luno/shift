@@ -46,7 +46,7 @@ func NewGenFSM[T primary](events eventInserter[T], opts ...option) initer[T] {
 type initer[T primary] GenFSM[T]
 
 // Insert returns an FSM builder with the provided insert status.
-func (c initer[T]) Insert(st Status, inserter inserter[T], next ...Status) builder[T] {
+func (c initer[T]) Insert(st Status, inserter Inserter[T], next ...Status) builder[T] {
 	c.states[st.ShiftStatus()] = status{
 		st:     st,
 		req:    inserter,
@@ -62,7 +62,7 @@ func (c initer[T]) Insert(st Status, inserter inserter[T], next ...Status) build
 type builder[T primary] GenFSM[T]
 
 // Update returns an FSM builder with the provided status update added.
-func (b builder[T]) Update(st Status, updater updater[T], next ...Status) builder[T] {
+func (b builder[T]) Update(st Status, updater Updater[T], next ...Status) builder[T] {
 	if _, has := b.states[st.ShiftStatus()]; has {
 		// Ok to panic since it is build time.
 		panic("state already added")

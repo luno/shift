@@ -48,49 +48,49 @@ type primary interface {
 	int64 | string
 }
 
-// inserter provides an interface for inserting new state machine instance rows.
-type inserter[T primary] interface {
+// Inserter provides an interface for inserting new state machine instance rows.
+type Inserter[T primary] interface {
 	// Insert inserts a new row with status and returns an id or an error.
 	Insert(ctx context.Context, tx *sql.Tx, status Status) (T, error)
 }
 
-// updater provides an interface for updating existing state machine instance rows.
-type updater[T primary] interface {
+// Updater provides an interface for updating existing state machine instance rows.
+type Updater[T primary] interface {
 	// Update updates the status of an existing row returns an id or an error.
 	Update(ctx context.Context, tx *sql.Tx, from Status, to Status) (T, error)
 }
 
-// metadataInserter extends inserter with additional metadata inserted with the reflex event.
-type metadataInserter[T primary] interface {
-	inserter[T]
+// MetadataInserter extends inserter with additional metadata inserted with the reflex event.
+type MetadataInserter[T primary] interface {
+	Inserter[T]
 
 	// GetMetadata returns the metadata to be inserted with the reflex event for the insert.
 	GetMetadata(ctx context.Context, tx *sql.Tx, id T, status Status) ([]byte, error)
 }
 
-// metadataUpdater extends updater with additional metadata inserted with the reflex event.
-type metadataUpdater[T primary] interface {
-	updater[T]
+// MetadataUpdater extends updater with additional metadata inserted with the reflex event.
+type MetadataUpdater[T primary] interface {
+	Updater[T]
 
 	// GetMetadata returns the metadata to be inserted with the reflex event for the update.
 	GetMetadata(ctx context.Context, tx *sql.Tx, from Status, to Status) ([]byte, error)
 }
 
-// validatingInserter extends inserter with validation. Assuming the majority
+// ValidatingInserter extends inserter with validation. Assuming the majority
 // validations will be successful, the validation is done after event insertion
 // to allow maximum flexibility sacrificing invalid path performance.
-type validatingInserter[T primary] interface {
-	inserter[T]
+type ValidatingInserter[T primary] interface {
+	Inserter[T]
 
 	// Validate returns an error if the insert is not valid.
 	Validate(ctx context.Context, tx *sql.Tx, id T, status Status) error
 }
 
-// validatingUpdater extends updater with validation. Assuming the majority
+// ValidatingUpdater extends updater with validation. Assuming the majority
 // validations will be successful, the validation is done after event insertion
 // to allow maximum flexibility sacrificing invalid path performance.
-type validatingUpdater[T primary] interface {
-	updater[T]
+type ValidatingUpdater[T primary] interface {
+	Updater[T]
 
 	// Validate returns an error if the update is not valid.
 	Validate(ctx context.Context, tx *sql.Tx, from Status, to Status) error
@@ -123,7 +123,7 @@ type GenFSM[T primary] struct {
 }
 
 // Insert returns the id of the newly inserted domain model.
-func (fsm *GenFSM[T]) Insert(ctx context.Context, dbc *sql.DB, inserter inserter[T]) (T, error) {
+func (fsm *GenFSM[T]) Insert(ctx context.Context, dbc *sql.DB, inserter Inserter[T]) (T, error) {
 	var zeroT T
 	tx, err := dbc.Begin()
 	if err != nil {
@@ -145,7 +145,7 @@ func (fsm *GenFSM[T]) Insert(ctx context.Context, dbc *sql.DB, inserter inserter
 	return id, nil
 }
 
-func (fsm *GenFSM[T]) InsertTx(ctx context.Context, tx *sql.Tx, inserter inserter[T]) (T, rsql.NotifyFunc, error) {
+func (fsm *GenFSM[T]) InsertTx(ctx context.Context, tx *sql.Tx, inserter Inserter[T]) (T, rsql.NotifyFunc, error) {
 	st := fsm.insertStatus
 	if !sameType(fsm.states[st.ShiftStatus()].req, inserter) {
 		var zeroT T
@@ -155,7 +155,7 @@ func (fsm *GenFSM[T]) InsertTx(ctx context.Context, tx *sql.Tx, inserter inserte
 	return insertTx[T](ctx, tx, st, inserter, fsm.events, fsm.states[st.ShiftStatus()].t, fsm.options)
 }
 
-func (fsm *GenFSM[T]) Update(ctx context.Context, dbc *sql.DB, from Status, to Status, updater updater[T]) error {
+func (fsm *GenFSM[T]) Update(ctx context.Context, dbc *sql.DB, from Status, to Status, updater Updater[T]) error {
 	tx, err := dbc.Begin()
 	if err != nil {
 		return err
@@ -176,7 +176,7 @@ func (fsm *GenFSM[T]) Update(ctx context.Context, dbc *sql.DB, from Status, to S
 	return nil
 }
 
-func (fsm *GenFSM[T]) UpdateTx(ctx context.Context, tx *sql.Tx, from Status, to Status, updater updater[T]) (rsql.NotifyFunc, error) {
+func (fsm *GenFSM[T]) UpdateTx(ctx context.Context, tx *sql.Tx, from Status, to Status, updater Updater[T]) (rsql.NotifyFunc, error) {
 	t, ok := fsm.states[to.ShiftStatus()]
 	if !ok {
 		return nil, errors.Wrap(ErrUnknownStatus, "unknown 'to' status", j.MKV{"from": fmt.Sprintf("%T", from), "to": fmt.Sprintf("%T", to)})
@@ -194,7 +194,7 @@ func (fsm *GenFSM[T]) UpdateTx(ctx context.Context, tx *sql.Tx, from Status, to 
 	return updateTx(ctx, tx, from, to, updater, fsm.events, t.t, fsm.options)
 }
 
-func insertTx[T primary](ctx context.Context, tx *sql.Tx, st Status, inserter inserter[T],
+func insertTx[T primary](ctx context.Context, tx *sql.Tx, st Status, inserter Inserter[T],
 	events eventInserter[T], eventType reflex.EventType, opts options,
 ) (T, rsql.NotifyFunc, error) {
 	var zeroT T
@@ -206,7 +206,7 @@ func insertTx[T primary](ctx context.Context, tx *sql.Tx, st Status, inserter in
 
 	var metadata []byte
 	if opts.withMetadata {
-		meta, ok := inserter.(metadataInserter[T])
+		meta, ok := inserter.(MetadataInserter[T])
 		if !ok {
 			return zeroT, nil, errors.Wrap(ErrInvalidType, "inserter without metadata")
 		}
@@ -224,7 +224,7 @@ func insertTx[T primary](ctx context.Context, tx *sql.Tx, st Status, inserter in
 	}
 
 	if opts.withValidation {
-		validate, ok := inserter.(validatingInserter[T])
+		validate, ok := inserter.(ValidatingInserter[T])
 		if !ok {
 			return zeroT, nil, errors.Wrap(ErrInvalidType, "inserter without validate method")
 		}
@@ -238,7 +238,7 @@ func insertTx[T primary](ctx context.Context, tx *sql.Tx, st Status, inserter in
 	return id, notify, err
 }
 
-func updateTx[T primary](ctx context.Context, tx *sql.Tx, from Status, to Status, updater updater[T],
+func updateTx[T primary](ctx context.Context, tx *sql.Tx, from Status, to Status, updater Updater[T],
 	events eventInserter[T], eventType reflex.EventType, opts options,
 ) (rsql.NotifyFunc, error) {
 	id, err := updater.Update(ctx, tx, from, to)
@@ -248,7 +248,7 @@ func updateTx[T primary](ctx context.Context, tx *sql.Tx, from Status, to Status
 
 	var metadata []byte
 	if opts.withMetadata {
-		meta, ok := updater.(metadataUpdater[T])
+		meta, ok := updater.(MetadataUpdater[T])
 		if !ok {
 			return nil, errors.Wrap(ErrInvalidType, "updater without metadata")
 		}
@@ -266,7 +266,7 @@ func updateTx[T primary](ctx context.Context, tx *sql.Tx, from Status, to Status
 	}
 
 	if opts.withValidation {
-		validate, ok := updater.(validatingUpdater[T])
+		validate, ok := updater.(ValidatingUpdater[T])
 		if !ok {
 			return nil, errors.Wrap(ErrInvalidType, "updater without validate method")
 		}

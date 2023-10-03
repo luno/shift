@@ -62,8 +62,8 @@ func TestFSM(_ testing.TB, dbc *sql.DB, fsm *FSM) error {
 	return nil
 }
 
-func randomUpdate(req interface{}, id int64) (u updater[int64], err error) {
-	u, ok := req.(updater[int64])
+func randomUpdate(req any, id int64) (u Updater[int64], err error) {
+	u, ok := req.(Updater[int64])
 	if !ok {
 		return nil, errors.New("req not of tupe Updater")
 	}
@@ -77,11 +77,11 @@ func randomUpdate(req interface{}, id int64) (u updater[int64], err error) {
 			f.Set(randVal(t))
 		}
 	}
-	return s.Interface().(updater[int64]), nil
+	return s.Interface().(Updater[int64]), nil
 }
 
-func randomInsert(req interface{}) (inserter[int64], error) {
-	_, ok := req.(inserter[int64])
+func randomInsert(req any) (Inserter[int64], error) {
+	_, ok := req.(Inserter[int64])
 	if !ok {
 		return nil, errors.New("req not of type Inserter")
 	}
@@ -91,7 +91,7 @@ func randomInsert(req interface{}) (inserter[int64], error) {
 		f := s.Field(i)
 		f.Set(randVal(f.Type()))
 	}
-	return s.Interface().(inserter[int64]), nil
+	return s.Interface().(Inserter[int64]), nil
 }
 
 func buildPaths(states map[int]status, from Status) [][]status {
@@ -129,7 +129,7 @@ var (
 )
 
 func randVal(t reflect.Type) reflect.Value {
-	var v interface{}
+	var v any
 	switch t {
 	case intType:
 		v = rand.Intn(1000)
