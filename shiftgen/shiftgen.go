@@ -13,8 +13,6 @@ package main
 import (
 	"bytes"
 	"flag"
-	"github.com/luno/jettison/errors"
-	"github.com/luno/jettison/j"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -27,6 +25,8 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/luno/jettison/errors"
+	"github.com/luno/jettison/j"
 	"golang.org/x/tools/imports"
 )
 
@@ -59,7 +59,7 @@ var (
 		"Character to use when quoting column names")
 )
 
-var ErrIDTypeMismatch = errors.New("Inserters and updaters' ID fields should have matching types")
+var ErrIDTypeMismatch = errors.New("Inserters and updaters' ID fields should have matching types", j.C("ERR_3db87b866daeda57"))
 
 type Field struct {
 	Name string
@@ -115,7 +115,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err = os.WriteFile(filePath, src, 0644); err != nil {
+	if err = os.WriteFile(filePath, src, 0o644); err != nil {
 		log.Fatal(errors.Wrap(err, "Error writing file"))
 	}
 }
@@ -316,8 +316,10 @@ func ensureMatchingIDType(inserters, updaters []Struct) error {
 	return nil
 }
 
-var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
-var matchAllCap = regexp.MustCompile("([a-z0-9])([A-Z])")
+var (
+	matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
+	matchAllCap   = regexp.MustCompile("([a-z0-9])([A-Z])")
+)
 
 func toSnakeCase(col string) string {
 	snake := matchFirstCap.ReplaceAllString(col, "${1}_${2}")

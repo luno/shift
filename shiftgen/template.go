@@ -19,7 +19,9 @@ import (
 // Insert inserts a new {{.Table}} table entity. All the fields of the 
 // {{.Type}} receiver are set, as well as status, created_at and updated_at. 
 // The newly created entity id is returned on success or an error.
-func (一 {{.Type}}) Insert(ctx context.Context, tx *sql.Tx, st shift.Status) ({{.IDType}}, error) {
+func (一 {{.Type}}) Insert(
+	ctx context.Context, tx *sql.Tx, st shift.Status,
+) ({{.IDType}}, error) {
 	var (
 		q    strings.Builder
 		args []interface{}
@@ -59,8 +61,9 @@ func (一 {{.Type}}) Insert(ctx context.Context, tx *sql.Tx, st shift.Status) ({
 // Update updates the status of a {{.Table}} table entity. All the fields of the
 // {{.Type}} receiver are updated, as well as status and updated_at. 
 // The entity id is returned on success or an error.
-func (一 {{.Type}}) Update(ctx context.Context, tx *sql.Tx, from shift.Status, 
-	to shift.Status) ({{.IDType}}, error) {
+func (一 {{.Type}}) Update(
+	ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status,
+) ({{.IDType}}, error) {
 	var (
 		q    strings.Builder
 		args []interface{}

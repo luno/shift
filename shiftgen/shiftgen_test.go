@@ -1,12 +1,13 @@
 package main
 
 import (
-	"github.com/luno/jettison/jtest"
-	"github.com/sebdah/goldie/v2"
-	"github.com/stretchr/testify/require"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/luno/jettison/jtest"
+	"github.com/sebdah/goldie/v2"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGen(t *testing.T) {

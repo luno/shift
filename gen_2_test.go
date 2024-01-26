@@ -51,7 +51,8 @@ func (一 i) Insert(ctx context.Context, tx *sql.Tx, st shift.Status) (int64, er
 // u receiver are updated, as well as status and updated_at.
 // The entity id is returned on success or an error.
 func (一 u) Update(ctx context.Context, tx *sql.Tx, from shift.Status,
-	to shift.Status) (int64, error) {
+	to shift.Status,
+) (int64, error) {
 	var (
 		q    strings.Builder
 		args []interface{}

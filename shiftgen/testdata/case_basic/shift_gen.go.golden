@@ -16,7 +16,9 @@ import (
 // Insert inserts a new users table entity. All the fields of the
 // insert receiver are set, as well as status, created_at and updated_at.
 // The newly created entity id is returned on success or an error.
-func (一 insert) Insert(ctx context.Context, tx *sql.Tx, st shift.Status) (int64, error) {
+func (一 insert) Insert(
+	ctx context.Context, tx *sql.Tx, st shift.Status,
+) (int64, error) {
 	var (
 		q    strings.Builder
 		args []interface{}
@@ -47,8 +49,9 @@ func (一 insert) Insert(ctx context.Context, tx *sql.Tx, st shift.Status) (int6
 // Update updates the status of a users table entity. All the fields of the
 // update receiver are updated, as well as status and updated_at.
 // The entity id is returned on success or an error.
-func (一 update) Update(ctx context.Context, tx *sql.Tx, from shift.Status,
-	to shift.Status) (int64, error) {
+func (一 update) Update(
+	ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status,
+) (int64, error) {
 	var (
 		q    strings.Builder
 		args []interface{}
@@ -84,8 +87,9 @@ func (一 update) Update(ctx context.Context, tx *sql.Tx, from shift.Status,
 // Update updates the status of a users table entity. All the fields of the
 // complete receiver are updated, as well as status and updated_at.
 // The entity id is returned on success or an error.
-func (一 complete) Update(ctx context.Context, tx *sql.Tx, from shift.Status,
-	to shift.Status) (int64, error) {
+func (一 complete) Update(
+	ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status,
+) (int64, error) {
 	var (
 		q    strings.Builder
 		args []interface{}
