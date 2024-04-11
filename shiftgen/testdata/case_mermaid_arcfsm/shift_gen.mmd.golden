@@ -1,0 +1,10 @@
+stateDiagram-v2
+	Direction LR
+	
+	[*]-->CREATED
+	
+	PENDING-->COMPLETED
+	PENDING-->FAILED
+	CREATED-->PENDING
+	CREATED-->FAILED
+	

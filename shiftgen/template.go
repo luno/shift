@@ -100,3 +100,16 @@ func (一 {{.Type}}) Update(
 	return 一.ID, nil
 }{{ end }}
 `
+
+var mermaidTemplate = `stateDiagram-v2
+	Direction {{.Direction}}
+	{{range $key, $value := .StartingPoints }}
+	[*]-->{{$value}}
+	{{- end }}
+	{{range $key, $value := .Transitions }}
+	{{$value.From}}-->{{$value.To}}
+	{{- end }}
+	{{range $key, $value := .TerminalPoints }}
+	{{$value}}-->[*]
+	{{- end }}
+`
