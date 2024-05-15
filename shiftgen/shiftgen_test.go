@@ -69,6 +69,37 @@ func TestGen(t *testing.T) {
 	}
 }
 
+func TestMermaid(t *testing.T) {
+	cc := []struct {
+		dir     string
+		outFile string
+	}{
+		{
+			dir:     "case_mermaid",
+			outFile: "shift_gen.mmd",
+		},
+		{
+			dir:     "case_mermaid_arcfsm",
+			outFile: "shift_gen.mmd",
+		},
+	}
+
+	for _, c := range cc {
+		t.Run(c.dir, func(t *testing.T) {
+			err := os.Setenv("GOFILE", "shiftgen_test.go")
+			jtest.RequireNil(t, err)
+			err = os.Setenv("GOLINE", "123")
+			jtest.RequireNil(t, err)
+
+			bb, err := generateMermaidDiagram(filepath.Join("testdata", c.dir))
+
+			jtest.RequireNil(t, err)
+			g := goldie.New(t)
+			g.Assert(t, filepath.Join(c.dir, c.outFile), []byte(bb))
+		})
+	}
+}
+
 func TestGenFailure(t *testing.T) {
 	cc := []struct {
 		dir       string

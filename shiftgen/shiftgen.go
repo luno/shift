@@ -57,6 +57,10 @@ var (
 		"output filename")
 	quoteChar = flag.String("quote_char", "`",
 		"Character to use when quoting column names")
+	mermaid = flag.Bool("mermaid", true,
+		"Generate mermaid state machine diagram")
+	mermaidOut = flag.String("mermaid_out", "shift_gen.mmd",
+		"Output filename for mermaid state machine diagram")
 )
 
 var ErrIDTypeMismatch = errors.New("Inserters and updaters' ID fields should have matching types", j.C("ERR_3db87b866daeda57"))
@@ -117,6 +121,20 @@ func main() {
 
 	if err = os.WriteFile(filePath, src, 0o644); err != nil {
 		log.Fatal(errors.Wrap(err, "Error writing file"))
+	}
+
+	if *mermaid {
+		mermaidFilePath := path.Join(pwd, *mermaidOut)
+
+		mmd, err := generateMermaidDiagram(pwd)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if err = os.WriteFile(mermaidFilePath, []byte(mmd), 0o644); err != nil {
+			log.Fatal(errors.Wrap(err, "Error writing file"))
+		}
 	}
 }
 
