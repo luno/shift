@@ -6,6 +6,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"os"
 	"slices"
 	"text/template"
 )
@@ -25,14 +26,17 @@ type mermaidTransition struct {
 	To   string
 }
 
-type points []string
-type transitions []mermaidTransition
+type (
+	points      []string
+	transitions []mermaidTransition
+)
 
 type mermaidFormat struct {
 	Direction      mermaidDirection
 	StartingPoints points
 	TerminalPoints points
 	Transitions    transitions
+	GenSource      string
 }
 
 func (t *points) add(point string) {
@@ -58,13 +62,14 @@ func (t *transitions) add(trans mermaidTransition) {
 func generateMermaidDiagram(pkgPath string) (string, error) {
 	fs := token.NewFileSet()
 	asts, err := parser.ParseDir(fs, pkgPath, nil, 0)
-
 	if err != nil {
 		return "", err
 	}
 
-	var diagram = &mermaidFormat{
+	genSource := os.Getenv("GOFILE") + ":" + os.Getenv("GOLINE")
+	diagram := &mermaidFormat{
 		Direction: leftToRightDirection,
+		GenSource: genSource,
 	}
 
 	for _, node := range asts {
@@ -85,7 +90,6 @@ func generateMermaidDiagram(pkgPath string) (string, error) {
 
 func renderMermaidTpl(diagram *mermaidFormat) (string, error) {
 	t, err := template.New("").Parse(mermaidTemplate)
-
 	if err != nil {
 		return "", err
 	}
