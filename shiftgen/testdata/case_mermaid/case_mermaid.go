@@ -3,6 +3,7 @@ package case_basic
 import (
 	"context"
 	"database/sql"
+
 	"github.com/luno/reflex/rsql"
 	"github.com/luno/shift"
 )
