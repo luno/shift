@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "**" ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
 
@@ -12,9 +12,14 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        mysql: ['mysql:8']
+        go: ['1.21', '1.22', '1']
+        
     services:
       mysql:
-        image: mysql:5.7
+        image: ${{ matrix.mysql }}
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: yes
           MYSQL_DATABASE: test
@@ -27,7 +32,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v1
       with:
-        go-version: '1'
+        go-version: ${{ matrix.go }}
       id: go
 
     - name: Check out code into the Go module directory
