@@ -9,18 +9,19 @@ Shift provides the SQL persistence layer for a simple "finite state machine" dom
 
 A Shift state machine is composed of an initial state followed by multiple subsequent states linked by allowed transitions, i.e., a rooted directed graph.
 
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> Created
+    Created --> Pending
+    Pending --> Failed
+    Pending --> Completed
+    Failed --> Pending
+    Completed --> [*]
 ```
-               ┌───────────┐
-               ▽           │
-CREATED ──▷ PENDING ─┬─▷ FAILED
-                     │
-                     └─▷ COMPLETED
-
-```
-
 Each state has an associated struct defining the data modified when entering the state.
 
-```
+```go
 type create struct {
   UserID string
   Type   int
@@ -67,7 +68,7 @@ Differences of ArcFSM from FSM:
 # Usage
 
 The above state machine is defined by:
-```
+```go
 events := rsql.NewEventsTableInt("events")
 fsm := shift.NewFSM(events)
   Insert(CREATED, create{}, PENDING).
@@ -83,14 +84,13 @@ Shift requires the state structs to implement `Inserter` or `Updater` interfaces
 
 A command `shiftgen` is provided that generates SQL boilerplate to implement these interfaces.
 
-```
+```go
 //go:generate shiftgen -inserter=create -updaters=pending,failed,completed -table=mysql_table_name
-
 ```
 
 The `fsm` instance is then used by the business logic to drive the state machine.
 
-```
+```go
 // Insert a new domain model (in the CREATED) state.
 id, err := fsm.Insert(ctx, dbc, create{"user123",TypeDefault})
 
