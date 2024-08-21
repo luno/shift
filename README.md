@@ -21,7 +21,7 @@ stateDiagram-v2
 ```
 Each state has an associated struct defining the data modified when entering the state.
 
-```
+```go
 type create struct {
   UserID string
   Type   int
