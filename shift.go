@@ -179,16 +179,16 @@ func (fsm *GenFSM[T]) Update(ctx context.Context, dbc *sql.DB, from Status, to S
 func (fsm *GenFSM[T]) UpdateTx(ctx context.Context, tx *sql.Tx, from Status, to Status, updater Updater[T]) (rsql.NotifyFunc, error) {
 	t, ok := fsm.states[to.ShiftStatus()]
 	if !ok {
-		return nil, errors.Wrap(ErrUnknownStatus, "unknown 'to' status", j.MKV{"from": fmt.Sprintf("%T", from), "to": fmt.Sprintf("%T", to)})
+		return nil, errors.Wrap(ErrUnknownStatus, "unknown 'to' status", j.MKV{"from": fmt.Sprintf("%v", from), "to": fmt.Sprintf("%v", to)})
 	}
 	if !sameType(t.req, updater) {
 		return nil, errors.Wrap(ErrInvalidType, "updater can't be used for this transition")
 	}
 	f, ok := fsm.states[from.ShiftStatus()]
 	if !ok {
-		return nil, errors.Wrap(ErrUnknownStatus, "unknown 'from' status", j.MKV{"from": fmt.Sprintf("%T", from), "to": fmt.Sprintf("%T", to)})
+		return nil, errors.Wrap(ErrUnknownStatus, "unknown 'from' status", j.MKV{"from": fmt.Sprintf("%v", from), "to": fmt.Sprintf("%v", to)})
 	} else if !f.next[to] {
-		return nil, errors.Wrap(ErrInvalidStateTransition, "", j.MKV{"from": fmt.Sprintf("%T", from), "to": fmt.Sprintf("%T", to)})
+		return nil, errors.Wrap(ErrInvalidStateTransition, "", j.MKV{"from": fmt.Sprintf("%v", from), "to": fmt.Sprintf("%v", to)})
 	}
 
 	return updateTx(ctx, tx, from, to, updater, fsm.events, t.t, fsm.options)
