@@ -3,6 +3,7 @@ package shift_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
 	"time"
 
@@ -294,7 +295,7 @@ func TestGenFSM_Update(t *testing.T) {
 		from   shift.Status
 		to     shift.Status
 		expErr error
-		expKVs j.MKV
+		expKVs j.MKS
 	}{
 		{
 			name: "Valid",
@@ -306,27 +307,28 @@ func TestGenFSM_Update(t *testing.T) {
 			from:   StatusComplete,
 			to:     StatusUpdate,
 			expErr: shift.ErrInvalidStateTransition,
-			expKVs: j.MKV{"from": StatusComplete, "to": StatusUpdate},
+			expKVs: j.MKS{"from": fmt.Sprintf("%v", StatusComplete), "to": fmt.Sprintf("%v", StatusUpdate)},
 		},
 		{
 			name:   "Unknown 'from' status",
 			from:   unknownShiftStatus,
 			to:     StatusUpdate,
-			expErr: errors.Wrap(shift.ErrUnknownStatus, "unknown 'from' status"),
-			expKVs: j.MKV{"from": unknownShiftStatus, "to": StatusUpdate},
+			expErr: shift.ErrUnknownStatus,
+			expKVs: j.MKS{"from": fmt.Sprintf("%v", unknownShiftStatus), "to": fmt.Sprintf("%v", StatusUpdate)},
 		},
 		{
 			name:   "Unknown 'to' status",
 			from:   StatusUpdate,
 			to:     unknownShiftStatus,
-			expErr: errors.Wrap(shift.ErrUnknownStatus, "unknown 'to' status"),
-			expKVs: j.MKV{"from": StatusUpdate, "to": unknownShiftStatus},
+			expErr: shift.ErrUnknownStatus,
+			expKVs: j.MKS{"from": fmt.Sprintf("%v", StatusUpdate), "to": fmt.Sprintf("%v", unknownShiftStatus)},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := fsm.Update(ctx, dbc, tt.from, tt.to, update{ID: id, Name: "updateMe", Amount: amount})
 			jtest.Assert(t, tt.expErr, err)
+			jtest.AssertKeyValues(t, tt.expKVs, err)
 		})
 	}
 }
