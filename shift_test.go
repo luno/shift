@@ -310,6 +310,13 @@ func TestGenFSM_Update(t *testing.T) {
 			expKVs: j.MKS{"from": fmt.Sprintf("%v", StatusComplete), "to": fmt.Sprintf("%v", StatusUpdate)},
 		},
 		{
+			name:   "Invalid Type",
+			from:   StatusInit,
+			to:     StatusComplete,
+			expErr: shift.ErrInvalidType,
+			expKVs: j.MKS{"from": fmt.Sprintf("%v", StatusInit), "to": fmt.Sprintf("%v", StatusComplete)},
+		},
+		{
 			name:   "Unknown 'from' status",
 			from:   unknownShiftStatus,
 			to:     StatusUpdate,

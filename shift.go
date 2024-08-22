@@ -182,7 +182,7 @@ func (fsm *GenFSM[T]) UpdateTx(ctx context.Context, tx *sql.Tx, from Status, to 
 		return nil, errors.Wrap(ErrUnknownStatus, "unknown 'to' status", j.MKV{"from": fmt.Sprintf("%v", from), "to": fmt.Sprintf("%v", to)})
 	}
 	if !sameType(t.req, updater) {
-		return nil, errors.Wrap(ErrInvalidType, "updater can't be used for this transition")
+		return nil, errors.Wrap(ErrInvalidType, "updater can't be used for this transition", j.MKV{"from": fmt.Sprintf("%v", from), "to": fmt.Sprintf("%v", to)})
 	}
 	f, ok := fsm.states[from.ShiftStatus()]
 	if !ok {
