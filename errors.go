@@ -19,6 +19,6 @@ var ErrUnknownStatus = errors.New("unknown status", j.C("ERR_198a4c2d8a654b17"))
 // registered with the FSM.
 var ErrInvalidStateTransition = errors.New("invalid state transition", j.C("ERR_be8211db784bfb67"))
 
-// ErrInvalidType indicates that the provided request type isn't valid can't be
+// ErrInvalidType indicates that the provided request type isn't valid, and can't be
 // used for the requested transition.
 var ErrInvalidType = errors.New("invalid type", j.C("ERR_baf1a1f2e99951ec"))
