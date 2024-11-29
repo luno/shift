@@ -99,7 +99,7 @@ type ValidatingUpdater[T primary] interface {
 // eventInserter inserts reflex events into a sql DB table.
 // It is implemented by rsql.EventsTable or rsql.EventsTableInt.
 type eventInserter[T primary] interface {
-	InsertWithMetadata(ctx context.Context, tx *sql.Tx, foreignID T,
+	InsertWithMetadata(ctx context.Context, dbc rsql.DBC, foreignID T,
 		typ reflex.EventType, metadata []byte) (rsql.NotifyFunc, error)
 }
 
