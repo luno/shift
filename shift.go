@@ -122,6 +122,16 @@ type GenFSM[T primary] struct {
 	insertStatus Status
 }
 
+// IsValidTransition validates status transition without committing the transaction
+func (fsm *GenFSM[T]) IsValidTransition(from Status, to Status) bool {
+	s, ok := fsm.states[from.ShiftStatus()]
+	if !ok {
+		return false
+	}
+	_, ok = s.next[to]
+	return ok
+}
+
 // Insert returns the id of the newly inserted domain model.
 func (fsm *GenFSM[T]) Insert(ctx context.Context, dbc *sql.DB, inserter Inserter[T]) (T, error) {
 	var zeroT T

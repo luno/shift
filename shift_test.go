@@ -141,10 +141,10 @@ const usersStrTable = "usersStr"
 var (
 	eventsStr = rsql.NewEventsTable("eventsStr")
 	fsmStr    = shift.NewGenFSM[string](eventsStr).
-			Insert(StatusInit, insertStr{}, StatusUpdate).
-			Update(StatusUpdate, updateStr{}, StatusComplete).
-			Update(StatusComplete, completeStr{}).
-			Build()
+		Insert(StatusInit, insertStr{}, StatusUpdate).
+		Update(StatusUpdate, updateStr{}, StatusComplete).
+		Update(StatusComplete, completeStr{}).
+		Build()
 )
 
 func TestBasic_StringFSM(t *testing.T) {
@@ -336,6 +336,42 @@ func TestGenFSM_Update(t *testing.T) {
 			err := fsm.Update(ctx, dbc, tt.from, tt.to, update{ID: id, Name: "updateMe", Amount: amount})
 			jtest.Assert(t, tt.expErr, err)
 			jtest.AssertKeyValues(t, tt.expKVs, err)
+		})
+	}
+}
+
+func TestIsValidTransition(t *testing.T) {
+	ctx := context.Background()
+	dbc := setup(t)
+	t0 := time.Now().Truncate(time.Second)
+	// Init model
+	id, err := fsm.Insert(ctx, dbc, insert{Name: "insertMe", DateOfBirth: t0})
+	jtest.RequireNil(t, err)
+	require.Equal(t, int64(1), id)
+
+	tests := []struct {
+		name string
+		from shift.Status
+		to   shift.Status
+		exp  bool
+	}{
+		{
+			name: "Valid",
+			from: StatusInit,
+			to:   StatusUpdate,
+			exp:  true,
+		},
+		{
+			name: "Invalid State Transition",
+			from: StatusComplete,
+			to:   StatusUpdate,
+			exp:  false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b := fsm.IsValidTransition(tt.from, tt.to)
+			require.Equal(t, tt.exp, b)
 		})
 	}
 }
