@@ -62,3 +62,39 @@ func TestArcFSM(t *testing.T) {
 
 	assertUser(t, dbc, events.ToStream(dbc), usersTable, id2, "insert2", t0, amount, 1)
 }
+
+func TestArcIsValidTransition(t *testing.T) {
+	ctx := context.Background()
+	dbc := setup(t)
+	t0 := time.Now().Truncate(time.Second)
+	// Init model
+	id1, err := afsm.Insert(ctx, dbc, StatusInit, insert{Name: "insert", DateOfBirth: t0})
+	jtest.RequireNil(t, err)
+	require.Equal(t, int64(1), id1)
+
+	tests := []struct {
+		name string
+		from shift.Status
+		to   shift.Status
+		exp  bool
+	}{
+		{
+			name: "Valid",
+			from: StatusInit,
+			to:   StatusUpdate,
+			exp:  true,
+		},
+		{
+			name: "Invalid State Transition",
+			from: StatusComplete,
+			to:   StatusUpdate,
+			exp:  false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b := afsm.IsValidTransition(tt.from, tt.to)
+			require.Equal(t, tt.exp, b)
+		})
+	}
+}
