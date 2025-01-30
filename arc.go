@@ -70,6 +70,21 @@ type ArcFSM struct {
 	updates map[int][]tuple
 }
 
+// IsValidTransition validates status transition without committing the transaction
+func (fsm *ArcFSM) IsValidTransition(from Status, to Status) bool {
+	s, ok := fsm.updates[from.ShiftStatus()]
+	if !ok {
+		return false
+	}
+
+	for _, tup := range s {
+		if tup.Status == to.ShiftStatus() {
+			return true
+		}
+	}
+	return false
+}
+
 func (fsm *ArcFSM) Insert(ctx context.Context, dbc *sql.DB, st Status, inserter Inserter[int64]) (int64, error) {
 	tx, err := dbc.Begin()
 	if err != nil {
