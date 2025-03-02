@@ -7,7 +7,7 @@ toolchain go1.22.6
 require (
 	github.com/luno/jettison v0.0.0-20240722160230-b42bd507a5f6
 	github.com/luno/reflex v0.0.0-20241129142022-57682f2c87b2
-	github.com/sebdah/goldie/v2 v2.5.3
+	github.com/sebdah/goldie/v2 v2.5.5
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/tools v0.6.0
 )
@@ -20,7 +20,6 @@ require (
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/luno/fate v0.0.0-20191017091315-567fa9070f1c // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.15.0 // indirect
