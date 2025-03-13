@@ -7,7 +7,7 @@ toolchain go1.22.6
 require (
 	github.com/luno/jettison v0.0.0-20240722160230-b42bd507a5f6
 	github.com/luno/reflex v0.0.0-20250313101922-d2735e11add1
-	github.com/sebdah/goldie/v2 v2.5.3
+	github.com/sebdah/goldie/v2 v2.5.5
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d
 )
