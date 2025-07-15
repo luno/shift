@@ -10,6 +10,17 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: test
+        ports:
+          - 3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        
     steps:
       - uses: actions/checkout@v4
 
@@ -19,7 +30,7 @@ jobs:
           go-version: '1.24'
 
       - name: Generate Sonar Report
-        run: go test -coverpkg=./... -coverprofile=coverage.out -json ./... > sonar-report.json
+        run: go test -db_test_base="root@tcp(localhost:${{ job.services.mysql.ports[3306] }})/test?" -coverpkg=./... -coverprofile=coverage.out -json ./... > sonar-report.json
 
       - name: Upload coverage reports to Sonar
         env:
