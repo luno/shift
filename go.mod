@@ -6,7 +6,7 @@ toolchain go1.25.3
 
 require (
 	github.com/luno/jettison v0.0.0-20251004142841-a8f926feeafb
-	github.com/luno/reflex v0.0.0-20251020135009-cb104f1cee4f
+	github.com/luno/reflex v0.0.0-20251020162718-5ce514550fe8
 	github.com/sebdah/goldie/v2 v2.8.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/tools v0.38.0
@@ -38,8 +38,8 @@ require (
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250715232539-7130f93afb79 // indirect
-	google.golang.org/grpc v1.75.1 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250804133106-a7a43d27e69b // indirect
+	google.golang.org/grpc v1.76.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
