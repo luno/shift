@@ -32,6 +32,9 @@ func WithValidation() option {
 //
 // Use shiftgen -version to generate insert/update methods that set and
 // increment the version column.
+//
+// WithVersion is mutually exclusive with WithMetadata. If both are set,
+// WithVersion takes precedence.
 func WithVersion(tableName string) option {
 	return func(o *options) {
 		o.tableName = tableName

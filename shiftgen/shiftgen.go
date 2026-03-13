@@ -260,6 +260,11 @@ func generateSrc(pkgPath, table string, inserters, updaters []string, statusFiel
 					st.CustomUpdatedAt = true
 				}
 
+				if withVersion && col == "version" {
+					inspectErr = errors.New("field maps to 'version' column which conflicts with -version flag", j.MKV{"name": typ, "field": name})
+					return false
+				}
+
 				field := Field{
 					Col:  col,
 					Name: name,
