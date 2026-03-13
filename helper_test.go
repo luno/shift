@@ -55,6 +55,26 @@ var schemas = []string{`
 
     primary key (id)
   );`, `
+  create temporary table versioned_users (
+    id bigint not null auto_increment,
+    name varchar(255) not null,
+
+    status     tinyint not null,
+    version    bigint not null default 0,
+    created_at datetime not null,
+    updated_at datetime not null,
+
+    primary key (id)
+  );`, `
+  create temporary table versioned_events (
+    id bigint not null auto_increment,
+    foreign_id bigint not null,
+    timestamp datetime not null,
+    type tinyint not null,
+    metadata blob,
+
+    primary key (id)
+  );`, `
   create temporary table tests (
     id bigint not null auto_increment,
     i1 bigint not null, 

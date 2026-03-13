@@ -5,6 +5,7 @@ type option func(*options)
 type options struct {
 	withMetadata   bool
 	withValidation bool
+	tableName      string // entity table name, set by WithVersion
 }
 
 // WithMetadata provides an option to enable event metadata with an FSM.
@@ -18,6 +19,22 @@ func WithMetadata() option {
 func WithValidation() option {
 	return func(o *options) {
 		o.withValidation = true
+	}
+}
+
+// WithVersion enables version tracking for the entity table. The tableName
+// must match the sql table managed by this FSM. When enabled, after each
+// insert or update, the entity's version is read and embedded in the reflex
+// event metadata as a JSON-encoded record_version header.
+//
+// The entity table must have a `version` column and the events table must
+// have metadata enabled via rsql.WithEventMetadataField.
+//
+// Use shiftgen -version to generate insert/update methods that set and
+// increment the version column.
+func WithVersion(tableName string) option {
+	return func(o *options) {
+		o.tableName = tableName
 	}
 }
 

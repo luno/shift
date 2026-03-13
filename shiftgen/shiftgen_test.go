@@ -12,12 +12,13 @@ import (
 
 func TestGen(t *testing.T) {
 	cc := []struct {
-		dir       string
-		table     string
-		inserters []string
-		updaters  []string
-		stringID  bool
-		outFile   string
+		dir         string
+		table       string
+		inserters   []string
+		updaters    []string
+		stringID    bool
+		outFile     string
+		withVersion bool
 	}{
 		{
 			dir:       "case_basic",
@@ -48,6 +49,14 @@ func TestGen(t *testing.T) {
 			stringID:  true,
 			outFile:   "shift_gen.go",
 		},
+		{
+			dir:         "case_version",
+			table:       "users",
+			inserters:   []string{"insert"},
+			updaters:    []string{"update"},
+			outFile:     "shift_gen.go",
+			withVersion: true,
+		},
 	}
 
 	for _, c := range cc {
@@ -60,7 +69,7 @@ func TestGen(t *testing.T) {
 			bb, err := generateSrc(
 				filepath.Join("testdata", c.dir),
 				c.table, c.inserters, c.updaters, "status",
-				filepath.Join("testdata", c.dir, c.outFile))
+				filepath.Join("testdata", c.dir, c.outFile), c.withVersion)
 
 			jtest.RequireNil(t, err)
 			g := goldie.New(t)
@@ -133,7 +142,7 @@ func TestGenFailure(t *testing.T) {
 			_, err := generateSrc(
 				filepath.Join("testdata", "failure", c.dir),
 				c.table, c.inserters, c.updaters, "status",
-				filepath.Join("testdata", "failure", c.dir, c.outFile))
+				filepath.Join("testdata", "failure", c.dir, c.outFile), false)
 
 			require.EqualError(t, err, c.outErr.Error())
 		})

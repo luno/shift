@@ -39,7 +39,7 @@ func (一 {{.Type}}) Insert(
 
 	{{end -}}
 
-	q.WriteString("insert into {{.Table}} set {{if .HasID}}` + "`id`=?" + `, {{end}}{{col .StatusField}}=?{{if not .CustomCreatedAt}}, {{col "created_at"}}=?{{end}}{{if not .CustomCreatedAt}}, {{col "updated_at"}}=?{{end}} ")
+	q.WriteString("insert into {{.Table}} set {{if .HasID}}` + "`id`=?" + `, {{end}}{{col .StatusField}}=?{{if not .CustomCreatedAt}}, {{col "created_at"}}=?{{end}}{{if not .CustomCreatedAt}}, {{col "updated_at"}}=?{{end}}{{if .Version}}, {{col "version"}}=1{{end}} ")
 	args = append(args, {{if .HasID}}一.ID, {{end}}st.ShiftStatus(){{if not .CustomCreatedAt}}, time.Now(){{end}}{{if not .CustomCreatedAt}}, time.Now(){{end}})
 {{range .Fields}}
 	q.WriteString(", {{col .Col}}=?")
@@ -76,7 +76,7 @@ func (一 {{.Type}}) Update(
 
 	{{end -}}
 
-	q.WriteString("update {{.Table}} set {{col .StatusField}}=?{{if not .CustomUpdatedAt}}, {{col "updated_at"}}=?{{end}} ")
+	q.WriteString("update {{.Table}} set {{col .StatusField}}=?{{if not .CustomUpdatedAt}}, {{col "updated_at"}}=?{{end}}{{if .Version}}, {{col "version"}}={{col "version"}}+1{{end}} ")
 	args = append(args, to.ShiftStatus(){{if not .CustomUpdatedAt}}, time.Now(){{end}})
 {{range .Fields}}
 	q.WriteString(", {{col .Col}}=?")

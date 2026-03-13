@@ -61,6 +61,8 @@ var (
 		"Generate mermaid state machine diagram")
 	mermaidOut = flag.String("mermaid_out", "shift_gen.mmd",
 		"Output filename for mermaid state machine diagram")
+	version = flag.Bool("version", false,
+		"Generate version column handling for insert and update")
 )
 
 var ErrIDTypeMismatch = errors.New("Inserters and updaters' ID fields should have matching types", j.C("ERR_3db87b866daeda57"))
@@ -79,7 +81,8 @@ type Struct struct {
 	CustomUpdatedAt bool
 	HasID           bool
 	// IDType is the type of the ID field
-	IDType string
+	IDType  string
+	Version bool
 }
 
 func (s Struct) IDZeroValue() string {
@@ -114,7 +117,7 @@ func main() {
 	}
 	filePath := path.Join(pwd, *outFile)
 
-	src, err := generateSrc(pwd, *table, ii, uu, *statusField, filePath)
+	src, err := generateSrc(pwd, *table, ii, uu, *statusField, filePath, *version)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -164,7 +167,7 @@ func parseUpdaters() []string {
 	return uu
 }
 
-func generateSrc(pkgPath, table string, inserters, updaters []string, statusField, filePath string) ([]byte, error) {
+func generateSrc(pkgPath, table string, inserters, updaters []string, statusField, filePath string, withVersion bool) ([]byte, error) {
 	if table == "" {
 		return nil, errors.New("No table specified")
 	}
@@ -224,7 +227,7 @@ func generateSrc(pkgPath, table string, inserters, updaters []string, statusFiel
 			if !ok {
 				inspectErr = errors.New("Inserter/updater must be a struct type", j.MKV{"name": typ})
 			}
-			st := Struct{Type: typ, Table: table, StatusField: statusField, IDType: "int64"}
+			st := Struct{Type: typ, Table: table, StatusField: statusField, IDType: "int64", Version: withVersion}
 			for _, f := range s.Fields.List {
 				if len(f.Names) == 0 {
 					inspectErr = errors.New("Inserter/updater, but has anonymous field (maybe shift.Reflect)", j.MKV{"name": typ})
