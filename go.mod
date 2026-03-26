@@ -2,7 +2,7 @@ module github.com/luno/shift
 
 go 1.25.3
 
-toolchain go1.25.6
+toolchain go1.26.1
 
 require (
 	github.com/luno/jettison v0.0.0-20260323123002-87b999fd9af1
