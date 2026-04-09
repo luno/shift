@@ -1,11 +1,11 @@
 module github.com/luno/shift
 
-go 1.25.3
+go 1.26.0
 
 toolchain go1.26.1
 
 require (
-	github.com/luno/jettison v0.0.0-20260328151427-502b299c2358
+	github.com/luno/jettison v0.0.0-20260409100325-ee7912824954
 	github.com/luno/reflex v0.0.0-20260328151636-0b8aa7faeffe
 	github.com/sebdah/goldie/v2 v2.8.0
 	github.com/stretchr/testify v1.11.1
