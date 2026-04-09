@@ -15,7 +15,6 @@ jobs:
     strategy:
       matrix:
         mysql: ['mysql:8']
-        go: ['1']
         
     services:
       mysql:
@@ -32,7 +31,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
-        go-version: ${{ matrix.go }}
+        go-version-file: 'go.mod'
       id: go
 
     - name: Check out code into the Go module directory
