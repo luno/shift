@@ -87,8 +87,8 @@ func randomInsert(req any) (Inserter[int64], error) {
 	}
 
 	s := reflect.New(reflect.ValueOf(req).Type()).Elem()
-	for i := 0; i < s.NumField(); i++ {
-		f := s.Field(i)
+	for _, f := range s.Fields() {
+		f := f
 		f.Set(randVal(f.Type()))
 	}
 	return s.Interface().(Inserter[int64]), nil
@@ -117,15 +117,15 @@ func buildPaths(states map[int]status, from Status) [][]status {
 }
 
 var (
-	intType        = reflect.TypeOf((int)(0))
-	int64Type      = reflect.TypeOf((int64)(0))
-	float64Type    = reflect.TypeOf((float64)(0))
-	timeType       = reflect.TypeOf(time.Time{})
-	sliceByteType  = reflect.TypeOf([]byte(nil))
-	boolType       = reflect.TypeOf(false)
-	stringType     = reflect.TypeOf("")
-	nullTimeType   = reflect.TypeOf(sql.NullTime{})
-	nullStringType = reflect.TypeOf(sql.NullString{})
+	intType        = reflect.TypeFor[int]()
+	int64Type      = reflect.TypeFor[int64]()
+	float64Type    = reflect.TypeFor[float64]()
+	timeType       = reflect.TypeFor[time.Time]()
+	sliceByteType  = reflect.TypeFor[[]byte]()
+	boolType       = reflect.TypeFor[bool]()
+	stringType     = reflect.TypeFor[string]()
+	nullTimeType   = reflect.TypeFor[sql.NullTime]()
+	nullStringType = reflect.TypeFor[sql.NullString]()
 )
 
 func randVal(t reflect.Type) reflect.Value {
