@@ -120,7 +120,7 @@ type Currency struct {
 	Amount int64
 }
 
-func (c *Currency) Scan(src interface{}) error {
+func (c *Currency) Scan(src any) error {
 	var s sql.NullString
 	if err := s.Scan(src); err != nil {
 		return err

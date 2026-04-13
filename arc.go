@@ -54,7 +54,7 @@ func (b arcbuilder) Build() *ArcFSM {
 
 type tuple struct {
 	Status int
-	Type   interface{}
+	Type   any
 }
 
 // ArcFSM is a defined Finite-State-Machine that allows specific mutations of
