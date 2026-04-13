@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         mysql: ['mysql:8']
-        go: ['1']
+        go: ['stable']
         
     services:
       mysql:
