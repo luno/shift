@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         mysql: ['mysql:8']
-        go: ['stable']
+        go: ['1']
         
     services:
       mysql:
@@ -34,6 +34,9 @@ jobs:
       with:
         go-version: ${{ matrix.go }}
       id: go
+
+    - name: Allow toolchain auto-download
+      run: echo "GOTOOLCHAIN=auto" >> $GITHUB_ENV
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v6
