@@ -54,7 +54,7 @@ func (b arcbuilder) Build() *ArcFSM {
 
 type tuple struct {
 	Status int
-	Type   interface{}
+	Type   any
 }
 
 // ArcFSM is a defined Finite-State-Machine that allows specific mutations of
@@ -71,7 +71,7 @@ type ArcFSM struct {
 }
 
 // IsValidTransition validates status transition without committing the transaction
-func (fsm *ArcFSM) IsValidTransition(from Status, to Status) bool {
+func (fsm *ArcFSM) IsValidTransition(from, to Status) bool {
 	s, ok := fsm.updates[from.ShiftStatus()]
 	if !ok {
 		return false

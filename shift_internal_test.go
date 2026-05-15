@@ -19,8 +19,8 @@ type yy y
 func Test(t *testing.T) {
 	cases := []struct {
 		name string
-		a    interface{}
-		b    interface{}
+		a    any
+		b    any
 		res  bool
 	}{
 		{

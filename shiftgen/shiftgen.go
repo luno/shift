@@ -147,7 +147,7 @@ func parseInserters() ([]string, error) {
 	if *inserter != "" {
 		ii = append(ii, *inserter)
 	} else if strings.TrimSpace(*inserters) != "" {
-		for _, i := range strings.Split(*inserters, ",") {
+		for i := range strings.SplitSeq(*inserters, ",") {
 			ii = append(ii, strings.TrimSpace(i))
 		}
 	}
@@ -157,7 +157,7 @@ func parseInserters() ([]string, error) {
 func parseUpdaters() []string {
 	var uu []string
 	if strings.TrimSpace(*updaters) != "" {
-		for _, u := range strings.Split(*updaters, ",") {
+		for u := range strings.SplitSeq(*updaters, ",") {
 			uu = append(uu, strings.TrimSpace(u))
 		}
 	}
@@ -304,7 +304,7 @@ func generateSrc(pkgPath, table string, inserters, updaters []string, statusFiel
 }
 
 func execTpl(out io.Writer, tpl string, data Data) error {
-	t := template.New("").Funcs(map[string]interface{}{
+	t := template.New("").Funcs(map[string]any{
 		"col": quoteCol,
 	})
 

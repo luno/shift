@@ -21,7 +21,7 @@ func (一 insert2) Insert(
 ) (int64, error) {
 	var (
 		q    strings.Builder
-		args []interface{}
+		args []any
 	)
 
 	q.WriteString("insert into users set `status`=?, `created_at`=?, `updated_at`=? ")
@@ -57,7 +57,7 @@ func (一 move) Update(
 ) (int64, error) {
 	var (
 		q    strings.Builder
-		args []interface{}
+		args []any
 	)
 
 	q.WriteString("update users set `status`=?, `updated_at`=? ")

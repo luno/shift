@@ -123,7 +123,7 @@ type GenFSM[T primary] struct {
 }
 
 // IsValidTransition validates status transition without committing the transaction
-func (fsm *GenFSM[T]) IsValidTransition(from Status, to Status) bool {
+func (fsm *GenFSM[T]) IsValidTransition(from, to Status) bool {
 	s, ok := fsm.states[from.ShiftStatus()]
 	if !ok {
 		return false
@@ -293,11 +293,11 @@ func updateTx[T primary](ctx context.Context, tx *sql.Tx, from Status, to Status
 type status struct {
 	st     Status
 	t      reflex.EventType
-	req    interface{}
+	req    any
 	insert bool
 	next   map[Status]bool
 }
 
-func sameType(a interface{}, b interface{}) bool {
+func sameType(a, b any) bool {
 	return reflect.TypeOf(a) == reflect.TypeOf(b)
 }

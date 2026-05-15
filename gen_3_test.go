@@ -20,7 +20,7 @@ func (一 i_t) Insert(
 ) (int64, error) {
 	var (
 		q    strings.Builder
-		args []interface{}
+		args []any
 	)
 
 	if 一.CreatedAt.IsZero() {
@@ -70,7 +70,7 @@ func (一 u_t) Update(
 ) (int64, error) {
 	var (
 		q    strings.Builder
-		args []interface{}
+		args []any
 	)
 
 	if 一.UpdatedAt.IsZero() {

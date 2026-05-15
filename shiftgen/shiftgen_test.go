@@ -10,6 +10,109 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestToSnakeCase(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{name: "lowercase unchanged", input: "hello", want: "hello"},
+		{name: "camel to snake", input: "CamelCase", want: "camel_case"},
+		{name: "multiple words", input: "MyFieldName", want: "my_field_name"},
+		{name: "acronym", input: "IDField", want: "id_field"},
+		{name: "already snake", input: "snake_case", want: "snake_case"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := toSnakeCase(tt.input)
+			if got != tt.want {
+				t.Errorf("toSnakeCase(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIDZeroValue(t *testing.T) {
+	tests := []struct {
+		name   string
+		idType string
+		want   string
+	}{
+		{name: "int64", idType: "int64", want: "0"},
+		{name: "string", idType: "string", want: `""`},
+		{name: "unknown type", idType: "uuid", want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := Struct{IDType: tt.idType}
+			got := s.IDZeroValue()
+			if got != tt.want {
+				t.Errorf("IDZeroValue() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseUpdaters(t *testing.T) {
+	tests := []struct {
+		name  string
+		value string
+		want  []string
+	}{
+		{name: "empty", value: "", want: nil},
+		{name: "single", value: "UpdateReq", want: []string{"UpdateReq"}},
+		{name: "multiple", value: "UpdateReq,CompleteReq", want: []string{"UpdateReq", "CompleteReq"}},
+		{name: "with spaces", value: " UpdateReq , CompleteReq ", want: []string{"UpdateReq", "CompleteReq"}},
+		{name: "whitespace only", value: "   ", want: nil},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			orig := *updaters
+			*updaters = tt.value
+			t.Cleanup(func() { *updaters = orig })
+
+			got := parseUpdaters()
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestParseInserters(t *testing.T) {
+	tests := []struct {
+		name         string
+		inserterVal  string
+		insertersVal string
+		want         []string
+		wantErr      bool
+	}{
+		{name: "empty", inserterVal: "", insertersVal: "", want: nil},
+		{name: "single inserter", inserterVal: "InsertReq", insertersVal: "", want: []string{"InsertReq"}},
+		{name: "multiple inserters", inserterVal: "", insertersVal: "InsertA,InsertB", want: []string{"InsertA", "InsertB"}},
+		{name: "inserters with spaces", inserterVal: "", insertersVal: " InsertA , InsertB ", want: []string{"InsertA", "InsertB"}},
+		{name: "both set returns error", inserterVal: "InsertReq", insertersVal: "InsertA", want: nil, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			origInserter := *inserter
+			origInserters := *inserters
+			*inserter = tt.inserterVal
+			*inserters = tt.insertersVal
+			t.Cleanup(func() {
+				*inserter = origInserter
+				*inserters = origInserters
+			})
+
+			got, err := parseInserters()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			jtest.RequireNil(t, err)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestGen(t *testing.T) {
 	cc := []struct {
 		dir       string

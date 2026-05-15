@@ -90,11 +90,11 @@ func TestTestFSM(t *testing.T) {
 }
 
 func (ii i) GetMetadata(ctx context.Context, tx *sql.Tx, id int64, status shift.Status) ([]byte, error) {
-	return []byte(fmt.Sprint(id)), nil
+	return fmt.Append(nil, id), nil
 }
 
 func (uu u) GetMetadata(ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status) ([]byte, error) {
-	return []byte(fmt.Sprint(uu.ID)), nil
+	return fmt.Append(nil, uu.ID), nil
 }
 
 func TestWithMeta(t *testing.T) {
@@ -111,8 +111,7 @@ func TestWithMeta(t *testing.T) {
 	err := shift.TestFSM(t, dbc, fsm)
 	require.NoError(t, err)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	sc, err := events.ToStream(dbc)(context.Background(), "")
 	require.NoError(t, err)
