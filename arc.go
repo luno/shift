@@ -71,7 +71,7 @@ type ArcFSM struct {
 }
 
 // IsValidTransition validates status transition without committing the transaction
-func (fsm *ArcFSM) IsValidTransition(from Status, to Status) bool {
+func (fsm *ArcFSM) IsValidTransition(from, to Status) bool {
 	s, ok := fsm.updates[from.ShiftStatus()]
 	if !ok {
 		return false
