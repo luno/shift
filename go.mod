@@ -6,19 +6,19 @@ toolchain go1.26.1
 
 require (
 	github.com/luno/jettison v0.0.0-20260604094545-6727dacc9313
-	github.com/luno/reflex v0.0.0-20260505115348-df5c0a5e7a05
+	github.com/luno/reflex v0.0.0-20260604093047-4b14e3e65833
 	github.com/sebdah/goldie/v2 v2.8.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/tools v0.44.0
 )
 
 require (
-	filippo.io/edwards25519 v1.1.1 // indirect
+	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.19.0 // indirect
-	github.com/go-sql-driver/mysql v1.9.3 // indirect
+	github.com/go-sql-driver/mysql v1.10.0 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
