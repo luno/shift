@@ -17,6 +17,7 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+	"strconv"
 
 	"github.com/luno/jettison/errors"
 	"github.com/luno/jettison/j"
@@ -214,18 +215,9 @@ func insertTx[T primary](ctx context.Context, tx *sql.Tx, st Status, inserter In
 		return zeroT, nil, err
 	}
 
-	var metadata []byte
-	if opts.withMetadata {
-		meta, ok := inserter.(MetadataInserter[T])
-		if !ok {
-			return zeroT, nil, errors.Wrap(ErrInvalidType, "inserter without metadata")
-		}
-
-		var err error
-		metadata, err = meta.GetMetadata(ctx, tx, id, st)
-		if err != nil {
-			return zeroT, nil, err
-		}
+	metadata, err := buildInsertMetadata(ctx, tx, id, st, inserter, opts)
+	if err != nil {
+		return zeroT, nil, err
 	}
 
 	notify, err := events.InsertWithMetadata(ctx, tx, id, eventType, metadata)
@@ -248,6 +240,33 @@ func insertTx[T primary](ctx context.Context, tx *sql.Tx, st Status, inserter In
 	return id, notify, err
 }
 
+func buildInsertMetadata[T primary](ctx context.Context, tx *sql.Tx, id T, st Status, inserter Inserter[T], opts options) ([]byte, error) {
+	if opts.tableName != "" {
+		var version int64
+		err := tx.QueryRowContext(ctx,
+			"select `version` from `"+opts.tableName+"` where `id`=?", id,
+		).Scan(&version)
+		if err != nil {
+			return nil, errors.Wrap(err, "read version")
+		}
+
+		h := Headers{
+			HeaderRecordVersion: strconv.FormatInt(version, 10),
+		}
+		return encodeHeaders(h)
+	}
+
+	if opts.withMetadata {
+		meta, ok := inserter.(MetadataInserter[T])
+		if !ok {
+			return nil, errors.Wrap(ErrInvalidType, "inserter without metadata")
+		}
+		return meta.GetMetadata(ctx, tx, id, st)
+	}
+
+	return nil, nil
+}
+
 func updateTx[T primary](ctx context.Context, tx *sql.Tx, from Status, to Status, updater Updater[T],
 	events eventInserter[T], eventType reflex.EventType, opts options,
 ) (rsql.NotifyFunc, error) {
@@ -256,18 +275,9 @@ func updateTx[T primary](ctx context.Context, tx *sql.Tx, from Status, to Status
 		return nil, err
 	}
 
-	var metadata []byte
-	if opts.withMetadata {
-		meta, ok := updater.(MetadataUpdater[T])
-		if !ok {
-			return nil, errors.Wrap(ErrInvalidType, "updater without metadata")
-		}
-
-		var err error
-		metadata, err = meta.GetMetadata(ctx, tx, from, to)
-		if err != nil {
-			return nil, err
-		}
+	metadata, err := buildUpdateMetadata(ctx, tx, id, from, to, updater, opts)
+	if err != nil {
+		return nil, err
 	}
 
 	notify, err := events.InsertWithMetadata(ctx, tx, id, eventType, metadata)
@@ -288,6 +298,33 @@ func updateTx[T primary](ctx context.Context, tx *sql.Tx, from Status, to Status
 	}
 
 	return notify, nil
+}
+
+func buildUpdateMetadata[T primary](ctx context.Context, tx *sql.Tx, id T, from, to Status, updater Updater[T], opts options) ([]byte, error) {
+	if opts.tableName != "" {
+		var version int64
+		err := tx.QueryRowContext(ctx,
+			"select `version` from `"+opts.tableName+"` where `id`=?", id,
+		).Scan(&version)
+		if err != nil {
+			return nil, errors.Wrap(err, "read version")
+		}
+
+		h := Headers{
+			HeaderRecordVersion: strconv.FormatInt(version, 10),
+		}
+		return encodeHeaders(h)
+	}
+
+	if opts.withMetadata {
+		meta, ok := updater.(MetadataUpdater[T])
+		if !ok {
+			return nil, errors.Wrap(ErrInvalidType, "updater without metadata")
+		}
+		return meta.GetMetadata(ctx, tx, from, to)
+	}
+
+	return nil, nil
 }
 
 type status struct {
