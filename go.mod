@@ -6,7 +6,7 @@ toolchain go1.26.1
 
 require (
 	github.com/luno/jettison v0.0.0-20260604094545-6727dacc9313
-	github.com/luno/reflex v0.0.0-20260609123455-93b6bf2beb34
+	github.com/luno/reflex v0.0.0-20260731135616-67717b135dfb
 	github.com/sebdah/goldie/v2 v2.8.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/tools v0.48.0
@@ -29,8 +29,8 @@ require (
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
-	go.opentelemetry.io/otel v1.43.0 // indirect
-	go.opentelemetry.io/otel/trace v1.43.0 // indirect
+	go.opentelemetry.io/otel v1.44.0 // indirect
+	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	golang.org/x/mod v0.38.0 // indirect
 	golang.org/x/net v0.57.0 // indirect
