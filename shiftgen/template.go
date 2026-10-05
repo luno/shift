@@ -94,7 +94,7 @@ func (一 {{.Type}}) Update(
 		return {{.IDZeroValue}}, err
 	}
 	if n != 1 {
-		return {{.IDZeroValue}}, errors.Wrap(shift.ErrRowCount, "{{.Type}}", j.KV("count", n))
+		return {{.IDZeroValue}}, errors.Wrap(shift.ErrRowCount, "{{.Type}}", j.MKV{"count", n})
 	}
 
 	return 一.ID, nil
