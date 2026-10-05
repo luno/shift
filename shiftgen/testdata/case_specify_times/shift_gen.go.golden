@@ -110,7 +110,7 @@ func (一 uFoo) Update(
 		return 0, err
 	}
 	if n != 1 {
-		return 0, errors.Wrap(shift.ErrRowCount, "uFoo", j.KV("count", n))
+		return 0, errors.Wrap(shift.ErrRowCount, "uFoo", j.MKV{"count": n})
 	}
 
 	return 一.ID, nil

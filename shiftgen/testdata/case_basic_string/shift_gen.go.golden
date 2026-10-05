@@ -73,7 +73,7 @@ func (一 update) Update(
 		return "", err
 	}
 	if n != 1 {
-		return "", errors.Wrap(shift.ErrRowCount, "update", j.KV("count", n))
+		return "", errors.Wrap(shift.ErrRowCount, "update", j.MKV{"count": n})
 	}
 
 	return 一.ID, nil
@@ -105,7 +105,7 @@ func (一 complete) Update(
 		return "", err
 	}
 	if n != 1 {
-		return "", errors.Wrap(shift.ErrRowCount, "complete", j.KV("count", n))
+		return "", errors.Wrap(shift.ErrRowCount, "complete", j.MKV{"count": n})
 	}
 
 	return 一.ID, nil
