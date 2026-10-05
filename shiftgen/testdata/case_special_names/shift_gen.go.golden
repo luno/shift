@@ -79,7 +79,7 @@ func (一 변수) Update(
 		return 0, err
 	}
 	if n != 1 {
-		return 0, errors.Wrap(shift.ErrRowCount, "변수", j.MKV{"count", n})
+		return 0, errors.Wrap(shift.ErrRowCount, "변수", j.MKV{"count": n})
 	}
 
 	return 一.ID, nil
@@ -121,7 +121,7 @@ func (一 エラー) Update(
 		return 0, err
 	}
 	if n != 1 {
-		return 0, errors.Wrap(shift.ErrRowCount, "エラー", j.MKV{"count", n})
+		return 0, errors.Wrap(shift.ErrRowCount, "エラー", j.MKV{"count": n})
 	}
 
 	return 一.ID, nil

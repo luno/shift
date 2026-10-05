@@ -16,8 +16,8 @@ import (
 
 {{ range .Inserters }}
 
-// Insert inserts a new {{.Table}} table entity. All the fields of the 
-// {{.Type}} receiver are set, as well as status, created_at and updated_at. 
+// Insert inserts a new {{.Table}} table entity. All the fields of the
+// {{.Type}} receiver are set, as well as status, created_at and updated_at.
 // The newly created entity id is returned on success or an error.
 func (一 {{.Type}}) Insert(
 	ctx context.Context, tx *sql.Tx, st shift.Status,
@@ -59,7 +59,7 @@ func (一 {{.Type}}) Insert(
 }
 {{end}}{{ range .Updaters }}
 // Update updates the status of a {{.Table}} table entity. All the fields of the
-// {{.Type}} receiver are updated, as well as status and updated_at. 
+// {{.Type}} receiver are updated, as well as status and updated_at.
 // The entity id is returned on success or an error.
 func (一 {{.Type}}) Update(
 	ctx context.Context, tx *sql.Tx, from shift.Status, to shift.Status,
@@ -94,7 +94,7 @@ func (一 {{.Type}}) Update(
 		return {{.IDZeroValue}}, err
 	}
 	if n != 1 {
-		return {{.IDZeroValue}}, errors.Wrap(shift.ErrRowCount, "{{.Type}}", j.MKV{"count", n})
+		return {{.IDZeroValue}}, errors.Wrap(shift.ErrRowCount, "{{.Type}}", j.MKV{"count": n})
 	}
 
 	return 一.ID, nil
